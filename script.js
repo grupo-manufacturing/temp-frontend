@@ -132,7 +132,7 @@ function waitForEmbeddedSignupData(maxMs) {
 
 window.fbAsyncInit = function () {
   FB.init({
-    appId: '1431126805485839',
+    appId: '1339299584731362',
     autoLogAppEvents: true,
     cookie: true,
     xfbml: true,
@@ -256,7 +256,7 @@ function connectWhatsApp() {
         });
     },
     {
-      config_id: '1316274063750803',
+      config_id: '865515573285412',
       response_type: 'code',
       override_default_response_type: true,
       extras: {
