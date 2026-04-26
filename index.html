@@ -3,595 +3,319 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Responza Inbox</title>
-  <style>
-    :root {
-      color-scheme: light;
-      --bg: #eef2f7;
-      --panel: #ffffff;
-      --text: #162032;
-      --muted: #54637c;
-      --border: #dbe3ef;
-      --accent: #25d366;
-      --accent-strong: #14b654;
-      --error-bg: #fff0f0;
-      --error-text: #9a2b2b;
-      --ok-bg: #edfdf3;
-      --ok-text: #1f6f44;
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      font-family: "Segoe UI", system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      padding: 1.5rem;
-    }
-
-    .layout {
-      max-width: 980px;
-      margin: 0 auto;
-      display: grid;
-      gap: 1rem;
-    }
-
-    .panel {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 1rem 1.1rem;
-      box-shadow: 0 8px 26px rgba(16, 24, 40, 0.06);
-    }
-
-    h1, h2, h3 { margin: 0 0 0.55rem; }
-    h1 { font-size: 1.3rem; }
-    h2 { font-size: 1.08rem; margin-top: 0.7rem; }
-    h3 { font-size: 0.95rem; margin-top: 0.6rem; }
-
-    p {
-      margin: 0 0 0.5rem;
-      font-size: 0.92rem;
-      line-height: 1.45;
-      color: var(--muted);
-    }
-
-    ul {
-      margin: 0.35rem 0 0.6rem 1rem;
-      padding: 0;
-      color: var(--muted);
-      font-size: 0.89rem;
-      line-height: 1.45;
-    }
-
-    .hero {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.8rem;
-    }
-
-    .hero-copy {
-      max-width: 640px;
-    }
-
-    .pill {
-      display: inline-block;
-      padding: 0.2rem 0.5rem;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: #f7f9fd;
-      color: var(--muted);
-      font-size: 0.78rem;
-      margin-right: 0.35rem;
-      margin-bottom: 0.35rem;
-    }
-
-    .status {
-      font-size: 0.86rem;
-      color: var(--muted);
-      margin-top: 0.35rem;
-      margin-bottom: 0.35rem;
-    }
-
-    .alert {
-      border-radius: 8px;
-      padding: 0.6rem 0.7rem;
-      margin: 0.5rem 0;
-      font-size: 0.88rem;
-      white-space: pre-wrap;
-    }
-
-    .alert.error {
-      background: var(--error-bg);
-      color: var(--error-text);
-      border: 1px solid #ffd7d7;
-    }
-
-    .alert.ok {
-      background: var(--ok-bg);
-      color: var(--ok-text);
-      border: 1px solid #ceefd9;
-    }
-
-    .kv-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 0.5rem;
-      margin-top: 0.35rem;
-    }
-
-    .kv-item {
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 0.55rem;
-      background: #fafcff;
-    }
-
-    .kv-item strong {
-      display: block;
-      font-size: 0.75rem;
-      color: var(--muted);
-      margin-bottom: 0.18rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.02em;
-    }
-
-    .kv-item code {
-      font-size: 0.77rem;
-      background: #f1f5fb;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 0.2rem 0.3rem;
-      display: inline-block;
-      word-break: break-all;
-    }
-
-    .steps {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-      gap: 0.45rem;
-      margin-top: 0.3rem;
-    }
-
-    .step {
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 0.55rem;
-      background: #fbfdff;
-      font-size: 0.86rem;
-      color: var(--muted);
-    }
-
-    .step strong {
-      color: var(--text);
-      display: block;
-      margin-bottom: 0.22rem;
-    }
-
-    form {
-      display: grid;
-      gap: 0.55rem;
-      margin-top: 0.55rem;
-    }
-
-    label {
-      font-size: 0.83rem;
-      color: var(--muted);
-      font-weight: 600;
-      margin-bottom: 0.2rem;
-      display: block;
-    }
-
-    input, textarea {
-      width: 100%;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.58rem 0.64rem;
-      font-size: 0.92rem;
-      color: var(--text);
-      background: #fff;
-      outline: none;
-    }
-
-    input:focus, textarea:focus {
-      border-color: #99c6ff;
-      box-shadow: 0 0 0 3px rgba(56, 132, 255, 0.12);
-    }
-
-    textarea {
-      min-height: 84px;
-      resize: vertical;
-    }
-
-    .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.55rem;
-    }
-
-    button {
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      padding: 0.6rem 0.95rem;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 0.9rem;
-    }
-
-    button:hover { background: var(--accent-strong); }
-    button:disabled { cursor: not-allowed; opacity: 0.72; }
-
-    .secondary {
-      background: #f2f6fc;
-      color: #1c2a40;
-      border: 1px solid var(--border);
-    }
-
-    .secondary:hover { background: #e8eef8; }
-
-    .messages {
-      margin-top: 0.45rem;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      background: #fbfdff;
-      padding: 0.4rem;
-      max-height: 240px;
-      overflow: auto;
-    }
-
-    .message-row {
-      border-radius: 8px;
-      background: #fff;
-      border: 1px solid #eaf0fb;
-      margin: 0.35rem 0;
-      padding: 0.45rem 0.5rem;
-      font-size: 0.86rem;
-      color: #2c3950;
-      line-height: 1.35;
-      word-break: break-word;
-    }
-  </style>
+  <title>Responza</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
+  <div class="bg-grid"></div>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
   <div class="layout">
-    <section class="panel">
-      <div class="hero">
-        <div class="hero-copy">
-          <h1>Responza Inbox: WhatsApp Customer Messaging</h1>
-          <p>Connect a WhatsApp Business account to send support updates and receive customer replies in one workspace.</p>
+    <section class="panel flow-shell">
+
+      <div class="flow-header">
+        <div class="header-left">
+          <div class="brand-mark">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <rect width="28" height="28" rx="8" fill="#25d366"/>
+              <path d="M14 5C9.03 5 5 9.03 5 14c0 1.6.42 3.1 1.15 4.4L5 23l4.75-1.24A8.96 8.96 0 0014 23c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 16.4a7.36 7.36 0 01-3.75-1.02l-.27-.16-2.82.74.75-2.74-.17-.28A7.4 7.4 0 016.6 14c0-4.08 3.32-7.4 7.4-7.4 4.08 0 7.4 3.32 7.4 7.4 0 4.08-3.32 7.4-7.4 7.4zm4.06-5.55c-.22-.11-1.3-.64-1.5-.71-.2-.08-.35-.11-.5.11-.15.22-.57.71-.7.86-.13.15-.26.17-.48.06-.22-.11-.94-.35-1.79-1.1-.66-.6-1.1-1.33-1.23-1.55-.13-.22-.01-.34.1-.45.1-.1.22-.26.33-.39.11-.13.15-.22.22-.37.08-.15.04-.28-.02-.39-.06-.11-.5-1.2-.68-1.64-.18-.43-.36-.37-.5-.38h-.43c-.15 0-.39.06-.6.28-.2.22-.77.75-.77 1.83 0 1.08.79 2.12.9 2.27.11.15 1.56 2.38 3.78 3.34.53.23.94.37 1.26.47.53.17 1.01.15 1.39.09.42-.07 1.3-.53 1.48-1.04.18-.51.18-.95.13-1.04-.06-.09-.2-.15-.42-.26z" fill="white"/>
+            </svg>
+          </div>
+          <div>
+            <div class="eyebrow">WhatsApp Business Integration</div>
+            <h1>Responza<span class="h1-accent">.</span></h1>
+          </div>
         </div>
-        <button id="connect-btn" type="button" onclick="connectWhatsApp()">Connect WhatsApp Business</button>
-      </div>
-      <div class="status" id="connect-status">Status: Not connected</div>
-      <div class="alert error" id="global-error" hidden></div>
-      <div class="alert ok" id="global-success" hidden></div>
-    </section>
-
-    <section class="panel">
-      <h2>Why we request these permissions</h2>
-      <p>This application asks for only the access required to provide customer messaging features.</p>
-      <ul>
-        <li><strong>whatsapp_business_management</strong>: connect your WhatsApp Business Account and phone sender.</li>
-        <li><strong>whatsapp_business_messaging</strong>: send approved customer messages and receive customer replies.</li>
-      </ul>
-      <p>You can disconnect the account in Meta Business settings at any time.</p>
-    </section>
-
-    <section class="panel">
-      <h2>What happens after you click connect</h2>
-      <div class="steps">
-        <div class="step"><strong>1) Authenticate with Meta</strong>Sign in and approve requested permissions for your business account.</div>
-        <div class="step"><strong>2) Account is linked</strong>Responza links your WhatsApp Business Account and sender number.</div>
-        <div class="step"><strong>3) Start messaging</strong>Send outbound updates and monitor incoming customer replies in the inbox below.</div>
-      </div>
-    </section>
-
-    <section class="panel" id="workspace" hidden>
-      <h2>Connected workspace</h2>
-      <p>Use this workspace to communicate with customers after account connection.</p>
-      <div class="kv-grid">
-        <div class="kv-item"><strong>Business account ID</strong><code id="waba-id">-</code></div>
-        <div class="kv-item"><strong>Sender phone ID</strong><code id="phone-id">-</code></div>
-      </div>
-
-      <h3>Send outbound message</h3>
-      <p>Send a message to a customer phone number in international format (for example: 14155550123).</p>
-      <form id="send-form">
-        <div>
-          <label for="to-input">Customer phone number</label>
-          <input id="to-input" name="to" placeholder="e.g. 14155550123" required />
+        <div class="status-pill" id="flow-progress">
+          <span class="pill-dot"></span>
+          Step 1 of 5
         </div>
-        <div>
-          <label for="message-input">Message text</label>
-          <textarea id="message-input" name="message" placeholder="Hi! Your support ticket has been updated." required></textarea>
+      </div>
+
+      <div class="step-track">
+        <div class="track-line">
+          <div class="track-fill" id="track-fill"></div>
+        </div>
+        <div class="track-dots">
+          <div class="track-dot active" data-step-dot="1"><span>1</span></div>
+          <div class="track-dot" data-step-dot="2"><span>2</span></div>
+          <div class="track-dot" data-step-dot="3"><span>3</span></div>
+          <div class="track-dot" data-step-dot="4"><span>4</span></div>
+          <div class="track-dot" data-step-dot="5"><span>5</span></div>
+        </div>
+      </div>
+
+      <section class="flow-step is-active" id="step-1" data-step="1">
+        <div class="step-intro">
+          <div class="step-number-badge">01</div>
+          <div>
+            <h2>Step 1: Connect WhatsApp</h2>
+            <p>Initiate Embedded Signup to link your WhatsApp Business Account to Responza.</p>
+          </div>
+        </div>
+        <div class="connect-card">
+          <div class="connect-card-inner">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+              <rect width="48" height="48" rx="14" fill="#25d366"/>
+              <path d="M24 8C15.16 8 8 15.16 8 24c0 2.83.74 5.48 2.04 7.78L8 40l8.45-2.2A15.9 15.9 0 0024 40c8.84 0 16-7.16 16-16S32.84 8 24 8zm0 29.12a13.1 13.1 0 01-6.67-1.82l-.47-.28-5.02 1.32 1.33-4.88-.3-.5A13.15 13.15 0 0110.88 24c0-7.24 5.88-13.12 13.12-13.12 7.24 0 13.12 5.88 13.12 13.12 0 7.24-5.88 13.12-13.12 13.12zm7.19-9.83c-.4-.2-2.32-1.14-2.68-1.27-.36-.14-.62-.2-.88.2-.26.39-1.01 1.27-1.24 1.53-.23.26-.46.3-.86.1-.4-.2-1.67-.62-3.18-1.96-1.18-1.05-1.97-2.35-2.2-2.75-.23-.4-.02-.61.17-.8.18-.18.4-.46.6-.7.2-.23.26-.4.4-.66.13-.26.06-.5-.04-.7-.1-.2-.88-2.13-1.2-2.92-.32-.77-.64-.66-.88-.67h-.77c-.26 0-.7.1-1.07.5-.36.39-1.37 1.34-1.37 3.26 0 1.92 1.4 3.77 1.6 4.03.2.27 2.77 4.22 6.71 5.93.94.4 1.67.65 2.24.83.94.3 1.8.26 2.47.16.75-.12 2.32-.95 2.64-1.85.32-.9.32-1.68.23-1.85-.1-.16-.36-.26-.76-.46z" fill="white"/>
+            </svg>
+            <div class="connect-text">
+              <strong>WhatsApp Business</strong>
+              <span>Click to open Meta Embedded Signup</span>
+            </div>
+            <button id="connect-btn" type="button" onclick="connectWhatsApp()" class="btn-whatsapp">
+              Connect WhatsApp
+            </button>
+          </div>
+        </div>
+        <div class="status-row" id="connect-status">
+          <span class="status-indicator"></span>
+          Status: Not connected
+        </div>
+        <div class="alert error" id="global-error" hidden></div>
+        <div class="alert ok" id="global-success" hidden></div>
+        <div class="actions">
+        </div>
+      </section>
+
+      <section class="flow-step" id="step-2" data-step="2" hidden>
+        <div class="step-intro">
+          <div class="step-number-badge">02</div>
+          <div>
+            <h2>Step 2: Complete Meta Signup</h2>
+            <p>Follow each Meta screen in sequence without skipping. The popup will guide you through.</p>
+          </div>
+        </div>
+        <div class="meta-steps-grid">
+          <div class="meta-step-card">
+            <div class="meta-step-num">01</div>
+            <div class="meta-step-text">Facebook login <span>(if required)</span></div>
+          </div>
+          <div class="meta-step-card">
+            <div class="meta-step-num">02</div>
+            <div class="meta-step-text">Business selection</div>
+          </div>
+          <div class="meta-step-card">
+            <div class="meta-step-num">03</div>
+            <div class="meta-step-text">WhatsApp account selection</div>
+          </div>
+          <div class="meta-step-card">
+            <div class="meta-step-num">04</div>
+            <div class="meta-step-text">Finish &amp; return here</div>
+          </div>
+        </div>
+        <div class="loader-row" id="oauth-loading" hidden>
+          <div class="spinner" aria-hidden="true"></div>
+          <span id="oauth-loading-text">Waiting for Embedded Signup to complete...</span>
         </div>
         <div class="actions">
-          <button id="send-btn" type="submit">Send Message</button>
-          <button class="secondary" type="button" onclick="refreshMessages()">Refresh Replies</button>
+          <button class="btn-ghost" type="button" data-prev-step="1">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13 8H3M7 4L3 8l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Back
+          </button>
         </div>
-      </form>
-      <div class="alert error" id="send-error" hidden></div>
-      <div class="alert ok" id="send-success" hidden></div>
+      </section>
 
-      <h3>Customer replies</h3>
-      <p>Recent inbound replies from connected WhatsApp conversations are shown here.</p>
-      <div class="messages" id="msg-list">
-        <div class="message-row">No customer replies yet.</div>
-      </div>
-    </section>
+      <section class="flow-step" id="step-3" data-step="3" hidden>
+        <div id="workspace">
+          <div class="step-intro">
+            <div class="step-number-badge success">03</div>
+            <div>
+              <h2>Step 3: Account Connected</h2>
+              <p>Your WhatsApp Business Account is live. Verified IDs are displayed below.</p>
+            </div>
+          </div>
+          <div class="kv-grid">
+            <div class="kv-item">
+              <div class="kv-icon">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="3" stroke="currentColor" stroke-width="1.5"/><path d="M5 8h6M5 5.5h3M5 10.5h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+              <strong>WABA ID</strong>
+              <code id="waba-id">-</code>
+            </div>
+            <div class="kv-item">
+              <div class="kv-icon">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 2h2.5L7 6l-1.5 1.5a9 9 0 003 3L10 9l4 1.5V13A1 1 0 0113 14C6.37 14 1 8.63 1 2a1 1 0 011-1h1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+              </div>
+              <strong>Phone Number ID</strong>
+              <code id="phone-id">-</code>
+            </div>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn-ghost" type="button" data-prev-step="2">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13 8H3M7 4L3 8l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Back
+          </button>
+          <button type="button" data-next-step="4" class="btn-primary">
+            Continue
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </section>
 
-    <section class="panel">
-      <h2>Data usage and privacy</h2>
-      <ul>
-        <li>Messages are processed to provide the inbox feature and message delivery.</li>
-        <li>This demo stores recent messages in temporary server memory for display.</li>
-        <li>A production deployment should add durable storage, retention policy, and access controls.</li>
-      </ul>
+      <section class="flow-step" id="step-4" data-step="4" hidden>
+        <div class="step-intro">
+          <div class="step-number-badge">04</div>
+          <div>
+            <h2>Step 4: Webhook in Action</h2>
+            <p>Send an outbound message or receive one from WhatsApp — both appear below in real time.</p>
+          </div>
+        </div>
+
+        <div class="messaging-workspace">
+
+          <!-- LEFT: Incoming inbox -->
+          <div class="workspace-col">
+            <div class="workspace-col-header">
+              <div class="workspace-col-label">
+                <span class="col-dot col-dot-live"></span>
+                Incoming Messages
+              </div>
+              <button class="btn-refresh" type="button" onclick="refreshMessages()">
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1 6.5a5.5 5.5 0 015.5-5.5M6.5 1l1.8 1.8M6.5 1 4.7 2.8M12 6.5A5.5 5.5 0 016.5 12M6.5 12l1.8-1.8M6.5 12l-1.8-1.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                Refresh
+              </button>
+            </div>
+            <div class="messages">
+              <div class="chat-header">
+                <div class="chat-header-left">
+                  <div class="chat-avatar">LC</div>
+                  <div>
+                    <strong>Live customer chat</strong>
+                    <span>Webhook deliveries appear here</span>
+                  </div>
+                </div>
+                <div class="chat-live-badge">
+                  <span class="chat-dot" aria-hidden="true"></span>
+                  Live
+                </div>
+              </div>
+              <div class="chat-thread" id="msg-list">
+                <div class="chat-empty">
+                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M16 4C9.37 4 4 9.37 4 16c0 2.1.52 4.08 1.44 5.82L4 28l6.36-1.66A11.93 11.93 0 0016 28c6.63 0 12-5.37 12-12S22.63 4 16 4z" stroke="currentColor" stroke-width="1.5"/></svg>
+                  No customer replies yet.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT: Send composer -->
+          <div class="workspace-col">
+            <div class="workspace-col-header">
+              <div class="workspace-col-label">
+                <span class="col-dot col-dot-send"></span>
+                Send Message
+              </div>
+            </div>
+            <div class="composer-card">
+              <div class="composer-top">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <rect width="20" height="20" rx="6" fill="rgba(37,211,102,0.15)"/>
+                  <path d="M10 3a7 7 0 100 14A7 7 0 0010 3zm0 12.25a5.22 5.22 0 01-2.66-.73l-.19-.11-2 .53.53-1.95-.12-.2A5.25 5.25 0 1110 15.25zm2.87-3.93c-.16-.08-.93-.46-1.07-.51-.14-.05-.25-.08-.35.08s-.4.51-.5.61c-.1.1-.18.12-.34.04-.16-.08-.67-.25-1.27-.78-.47-.42-.79-.94-.88-1.1-.09-.16 0-.24.07-.32.07-.07.16-.18.24-.28.08-.1.1-.16.16-.27.05-.1.02-.2-.02-.28-.04-.08-.35-.85-.48-1.16-.13-.31-.26-.27-.35-.27h-.31c-.1 0-.28.04-.43.2-.15.15-.55.54-.55 1.3 0 .77.56 1.51.64 1.61.08.1 1.1 1.69 2.68 2.37.37.16.67.26.9.33.38.12.72.1.99.06.3-.05.93-.38 1.06-.74.13-.36.13-.68.09-.74-.04-.07-.14-.1-.3-.18z" fill="#25d366"/>
+                </svg>
+                <span class="composer-title">WhatsApp Outbound</span>
+              </div>
+
+              <div class="field-group">
+                <label class="field-label" for="send-to">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 2h3L6.5 5l-1.25 1.25A6.5 6.5 0 007.5 8.5L9 7l3 1.5v2A.75.75 0 0111.25 11C4.62 11 .5 7.5.5 2A.75.75 0 011.25 1.25H2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+                  Recipient phone number
+                </label>
+                <div class="phone-input-wrap">
+                  <span class="phone-prefix">+</span>
+                  <input id="send-to" type="tel" placeholder="1234567890  (with country code, no +)" class="field-input phone-input" autocomplete="off"/>
+                </div>
+              </div>
+
+              <div class="field-group">
+                <label class="field-label" for="send-msg">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1" y="1" width="10" height="10" rx="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M3.5 4h5M3.5 6.5h3.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+                  Message
+                </label>
+                <textarea id="send-msg" placeholder="Type your message here..." class="field-input field-textarea" rows="4"></textarea>
+                <div class="char-counter"><span id="char-count">0</span>&thinsp;/&thinsp;1024</div>
+              </div>
+
+              <div class="alert error" id="send-error" hidden></div>
+              <div class="alert ok" id="send-success" hidden></div>
+
+              <button id="send-btn" type="button" onclick="sendMessage()" class="btn-send">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 2l12 6-12 6V9.5L10 8 2 6.5V2z" fill="currentColor"/></svg>
+                Send via WhatsApp
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="actions">
+          <button class="btn-ghost" type="button" data-prev-step="3">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13 8H3M7 4L3 8l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Back
+          </button>
+          <button type="button" data-next-step="5" class="btn-primary">
+            Continue
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </section>
+
+      <section class="flow-step" id="step-5" data-step="5" hidden>
+        <div class="step-intro">
+          <div class="step-number-badge">05</div>
+          <div>
+            <h2>Step 5: Data Usage &amp; Permissions</h2>
+            <p>A summary of how Responza uses your WhatsApp data and the permissions required.</p>
+          </div>
+        </div>
+        <div class="data-usage-list">
+          <div class="data-item">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2l.75 2.25H14l-3.5 2.5 1.25 3.75L9 8.5l-2.75 2 1.25-3.75L4 4.25h4.25L9 2z" stroke="#25d366" stroke-width="1.2" stroke-linejoin="round"/></svg>
+            Messages are collected and displayed in your inbox for instant access.
+          </div>
+          <div class="data-item">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2l.75 2.25H14l-3.5 2.5 1.25 3.75L9 8.5l-2.75 2 1.25-3.75L4 4.25h4.25L9 2z" stroke="#25d366" stroke-width="1.2" stroke-linejoin="round"/></svg>
+            Message data is used for lead identification and routing workflows.
+          </div>
+          <div class="data-item">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2l.75 2.25H14l-3.5 2.5 1.25 3.75L9 8.5l-2.75 2 1.25-3.75L4 4.25h4.25L9 2z" stroke="#25d366" stroke-width="1.2" stroke-linejoin="round"/></svg>
+            Recent messages are stored in server memory and displayed in your inbox in real time.
+          </div>
+        </div>
+        <div class="permissions-grid">
+          <div class="permission-card">
+            <div class="perm-icon">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="4" stroke="#4a67ff" stroke-width="1.5"/><path d="M7 10h6M7 7h4M7 13h3" stroke="#4a67ff" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </div>
+            <strong>whatsapp_business_management</strong>
+            <span>Connect WhatsApp Business Account and retrieve sender details.</span>
+          </div>
+          <div class="permission-card">
+            <div class="perm-icon">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 4h14v8a2 2 0 01-2 2H5a2 2 0 01-2-2V4z" stroke="#25d366" stroke-width="1.5"/><path d="M7 16h6" stroke="#25d366" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </div>
+            <strong>whatsapp_business_messaging</strong>
+            <span>Send and receive customer messages through this inbox.</span>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn-ghost" type="button" data-prev-step="4">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13 8H3M7 4L3 8l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Back
+          </button>
+        </div>
+      </section>
+
     </section>
   </div>
 
-  <script>
-    const API = 'https://temp-backend-idyb.onrender.com';
-    let poller = null;
-    let isConnected = false;
-    let waEmbeddedSession = null;
-
-    function safeText(value) {
-      return String(value == null ? '' : value).replace(/</g, '&lt;');
-    }
-
-    function setStatus(text) {
-      document.getElementById('connect-status').textContent = text;
-    }
-
-    function setAlert(id, msg) {
-      const el = document.getElementById(id);
-      if (!el) return;
-      if (msg) {
-        el.textContent = msg;
-        el.removeAttribute('hidden');
-      } else {
-        el.setAttribute('hidden', '');
-      }
-    }
-
-    function clearGlobalMessages() {
-      setAlert('global-error', '');
-      setAlert('global-success', '');
-    }
-
-    function clearSendMessages() {
-      setAlert('send-error', '');
-      setAlert('send-success', '');
-    }
-
-    window.addEventListener('message', function (event) {
-      if (!String(event.origin || '').endsWith('facebook.com')) return;
-      let data;
-      try {
-        data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-      } catch (e) {
-        return;
-      }
-      if (!data || data.type !== 'WA_EMBEDDED_SIGNUP') return;
-
-      const ev = data.event;
-      if (
-        ev === 'FINISH' ||
-        ev === 'FINISH_ONLY_WABA' ||
-        ev === 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING' ||
-        ev === 'FINISH_OBO_MIGRATION' ||
-        ev === 'FINISH_GRANT_ONLY_API_ACCESS'
-      ) {
-        const d = data.data || {};
-        waEmbeddedSession = {
-          waba_id: d.waba_id || (d.waba_ids && d.waba_ids[0]) || null,
-          phone_number_id: d.phone_number_id || null
-        };
-      }
-    });
-
-    function waitForEmbeddedSignupData(maxMs) {
-      if (waEmbeddedSession && waEmbeddedSession.waba_id) {
-        return Promise.resolve(waEmbeddedSession);
-      }
-      return new Promise(function (resolve) {
-        const t0 = Date.now();
-        const id = setInterval(function () {
-          if (waEmbeddedSession && waEmbeddedSession.waba_id) {
-            clearInterval(id);
-            resolve(waEmbeddedSession);
-          } else if (Date.now() - t0 > maxMs) {
-            clearInterval(id);
-            resolve(waEmbeddedSession || {});
-          }
-        }, 100);
-      });
-    }
-
-    window.fbAsyncInit = function () {
-      FB.init({
-        appId: '1431126805485839',
-        autoLogAppEvents: true,
-        cookie: true,
-        xfbml: true,
-        version: 'v19.0'
-      });
-    };
-
-    function setConnectedWorkspace(info) {
-      isConnected = true;
-      document.getElementById('workspace').removeAttribute('hidden');
-      document.getElementById('waba-id').textContent = info.wabaId || '-';
-      document.getElementById('phone-id').textContent = info.phoneNumberId || '-';
-      document.getElementById('connect-btn').textContent = 'Reconnect WhatsApp Business';
-      setStatus('Status: Connected and ready to message customers');
-      setAlert('global-success', 'Account connected successfully. You can now send and receive customer messages.');
-      refreshMessages();
-      startMessagePolling();
-    }
-
-    function startMessagePolling() {
-      if (poller) return;
-      poller = setInterval(refreshMessages, 3000);
-    }
-
-    function refreshMessages() {
-      if (!isConnected) return;
-      fetch(API + '/messages')
-        .then(function (res) {
-          return res.json().then(function (data) {
-            if (!res.ok) {
-              throw new Error((data && data.error) || 'Unable to load replies');
-            }
-            return data;
-          });
-        })
-        .then(function (data) {
-          const list = document.getElementById('msg-list');
-          if (!Array.isArray(data) || !data.length) {
-            list.innerHTML = '<div class="message-row">No customer replies yet.</div>';
-            return;
-          }
-          list.innerHTML = data
-            .map(function (m) {
-              return '<div class="message-row">' + safeText(m) + '</div>';
-            })
-            .join('');
-        })
-        .catch(function (err) {
-          setAlert('global-error', 'Unable to load customer replies: ' + (err.message || String(err)));
-        });
-    }
-
-    function connectWhatsApp() {
-      clearGlobalMessages();
-      clearSendMessages();
-      waEmbeddedSession = null;
-      setStatus('Status: Connecting to Meta...');
-
-      FB.login(
-        function (response) {
-          const code = response && response.authResponse && response.authResponse.code;
-          if (!code) {
-            setStatus('Status: Connection cancelled');
-            setAlert('global-error', 'Connection was cancelled before authorization completed.');
-            return;
-          }
-
-          setStatus('Status: Finalizing account setup...');
-          fetch(API + '/exchange-token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code: code })
-          })
-            .then(function (res) {
-              return res.json().then(function (data) {
-                if (!res.ok) {
-                  const detail =
-                    (data.details && data.details.error && data.details.error.message) || data.error;
-                  throw new Error(detail || 'Token exchange failed');
-                }
-                return data;
-              });
-            })
-            .then(function (data) {
-              return waitForEmbeddedSignupData(5000).then(function (session) {
-                return fetch(API + '/onboard-user', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    access_token: data.access_token,
-                    waba_id: session.waba_id || undefined,
-                    phone_number_id: session.phone_number_id || undefined
-                  })
-                });
-              });
-            })
-            .then(function (res) {
-              return res.json().then(function (j) {
-                if (!res.ok) {
-                  const msg =
-                    (j.details && j.details.error && j.details.error.message) || j.error || 'Setup failed';
-                  throw new Error(msg);
-                }
-                return j;
-              });
-            })
-            .then(function (info) {
-              setConnectedWorkspace(info);
-            })
-            .catch(function (err) {
-              setStatus('Status: Connection failed');
-              setAlert('global-error', 'Unable to connect account: ' + (err.message || String(err)));
-            });
-        },
-        {
-          config_id: '1316274063750803',
-          response_type: 'code',
-          override_default_response_type: true,
-          extras: {
-            setup: {}
-          }
-        }
-      );
-    }
-
-    document.getElementById('send-form').addEventListener('submit', function (event) {
-      event.preventDefault();
-      clearSendMessages();
-      clearGlobalMessages();
-
-      if (!isConnected) {
-        setAlert('send-error', 'Please connect a WhatsApp Business account before sending messages.');
-        return;
-      }
-
-      const to = document.getElementById('to-input').value.trim();
-      const message = document.getElementById('message-input').value.trim();
-      if (!to || !message) {
-        setAlert('send-error', 'Both customer phone number and message text are required.');
-        return;
-      }
-
-      const sendBtn = document.getElementById('send-btn');
-      sendBtn.disabled = true;
-      sendBtn.textContent = 'Sending...';
-
-      fetch(API + '/send-message', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: to, message: message })
-      })
-        .then(function (res) {
-          return res.json().then(function (data) {
-            if (!res.ok) {
-              const detail = (data.details && data.details.error && data.details.error.message) || data.error;
-              throw new Error(detail || 'Failed to send message');
-            }
-            return data;
-          });
-        })
-        .then(function () {
-          setAlert('send-success', 'Message sent successfully.');
-          document.getElementById('message-input').value = '';
-          refreshMessages();
-        })
-        .catch(function (err) {
-          setAlert('send-error', 'Unable to send message: ' + (err.message || String(err)));
-        })
-        .finally(function () {
-          sendBtn.disabled = false;
-          sendBtn.textContent = 'Send Message';
-        });
-    });
-  </script>
+  <script src="./script.js"></script>
   <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
 </body>
 </html>
