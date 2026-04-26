@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Responza Inbox</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #eef2f7;
+      --panel: #ffffff;
+      --text: #162032;
+      --muted: #54637c;
+      --border: #dbe3ef;
+      --accent: #25d366;
+      --accent-strong: #14b654;
+      --error-bg: #fff0f0;
+      --error-text: #9a2b2b;
+      --ok-bg: #edfdf3;
+      --ok-text: #1f6f44;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 1.5rem;
+    }
+
+    .layout {
+      max-width: 980px;
+      margin: 0 auto;
+      display: grid;
+      gap: 1rem;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1rem 1.1rem;
+      box-shadow: 0 8px 26px rgba(16, 24, 40, 0.06);
+    }
+
+    h1, h2, h3 { margin: 0 0 0.55rem; }
+    h1 { font-size: 1.3rem; }
+    h2 { font-size: 1.08rem; margin-top: 0.7rem; }
+    h3 { font-size: 0.95rem; margin-top: 0.6rem; }
+
+    p {
+      margin: 0 0 0.5rem;
+      font-size: 0.92rem;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+
+    ul {
+      margin: 0.35rem 0 0.6rem 1rem;
+      padding: 0;
+      color: var(--muted);
+      font-size: 0.89rem;
+      line-height: 1.45;
+    }
+
+    .hero {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.8rem;
+    }
+
+    .hero-copy {
+      max-width: 640px;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #f7f9fd;
+      color: var(--muted);
+      font-size: 0.78rem;
+      margin-right: 0.35rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .status {
+      font-size: 0.86rem;
+      color: var(--muted);
+      margin-top: 0.35rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .alert {
+      border-radius: 8px;
+      padding: 0.6rem 0.7rem;
+      margin: 0.5rem 0;
+      font-size: 0.88rem;
+      white-space: pre-wrap;
+    }
+
+    .alert.error {
+      background: var(--error-bg);
+      color: var(--error-text);
+      border: 1px solid #ffd7d7;
+    }
+
+    .alert.ok {
+      background: var(--ok-bg);
+      color: var(--ok-text);
+      border: 1px solid #ceefd9;
+    }
+
+    .kv-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 0.5rem;
+      margin-top: 0.35rem;
+    }
+
+    .kv-item {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.55rem;
+      background: #fafcff;
+    }
+
+    .kv-item strong {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 0.18rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    .kv-item code {
+      font-size: 0.77rem;
+      background: #f1f5fb;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.2rem 0.3rem;
+      display: inline-block;
+      word-break: break-all;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 0.45rem;
+      margin-top: 0.3rem;
+    }
+
+    .step {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.55rem;
+      background: #fbfdff;
+      font-size: 0.86rem;
+      color: var(--muted);
+    }
+
+    .step strong {
+      color: var(--text);
+      display: block;
+      margin-bottom: 0.22rem;
+    }
+
+    form {
+      display: grid;
+      gap: 0.55rem;
+      margin-top: 0.55rem;
+    }
+
+    label {
+      font-size: 0.83rem;
+      color: var(--muted);
+      font-weight: 600;
+      margin-bottom: 0.2rem;
+      display: block;
+    }
+
+    input, textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.58rem 0.64rem;
+      font-size: 0.92rem;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+    }
+
+    input:focus, textarea:focus {
+      border-color: #99c6ff;
+      box-shadow: 0 0 0 3px rgba(56, 132, 255, 0.12);
+    }
+
+    textarea {
+      min-height: 84px;
+      resize: vertical;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+    }
+
+    button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0.6rem 0.95rem;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    button:hover { background: var(--accent-strong); }
+    button:disabled { cursor: not-allowed; opacity: 0.72; }
+
+    .secondary {
+      background: #f2f6fc;
+      color: #1c2a40;
+      border: 1px solid var(--border);
+    }
+
+    .secondary:hover { background: #e8eef8; }
+
+    .messages {
+      margin-top: 0.45rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fbfdff;
+      padding: 0.4rem;
+      max-height: 240px;
+      overflow: auto;
+    }
+
+    .message-row {
+      border-radius: 8px;
+      background: #fff;
+      border: 1px solid #eaf0fb;
+      margin: 0.35rem 0;
+      padding: 0.45rem 0.5rem;
+      font-size: 0.86rem;
+      color: #2c3950;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <section class="panel">
+      <div class="hero">
+        <div class="hero-copy">
+          <h1>Responza Inbox: WhatsApp Customer Messaging</h1>
+          <p>Connect a WhatsApp Business account to send support updates and receive customer replies in one workspace.</p>
+        </div>
+        <button id="connect-btn" type="button" onclick="connectWhatsApp()">Connect WhatsApp Business</button>
+      </div>
+      <div class="status" id="connect-status">Status: Not connected</div>
+      <div class="alert error" id="global-error" hidden></div>
+      <div class="alert ok" id="global-success" hidden></div>
+    </section>
+
+    <section class="panel">
+      <h2>Why we request these permissions</h2>
+      <p>This application asks for only the access required to provide customer messaging features.</p>
+      <ul>
+        <li><strong>whatsapp_business_management</strong>: connect your WhatsApp Business Account and phone sender.</li>
+        <li><strong>whatsapp_business_messaging</strong>: send approved customer messages and receive customer replies.</li>
+      </ul>
+      <p>You can disconnect the account in Meta Business settings at any time.</p>
+    </section>
+
+    <section class="panel">
+      <h2>What happens after you click connect</h2>
+      <div class="steps">
+        <div class="step"><strong>1) Authenticate with Meta</strong>Sign in and approve requested permissions for your business account.</div>
+        <div class="step"><strong>2) Account is linked</strong>Responza links your WhatsApp Business Account and sender number.</div>
+        <div class="step"><strong>3) Start messaging</strong>Send outbound updates and monitor incoming customer replies in the inbox below.</div>
+      </div>
+    </section>
+
+    <section class="panel" id="workspace" hidden>
+      <h2>Connected workspace</h2>
+      <p>Use this workspace to communicate with customers after account connection.</p>
+      <div class="kv-grid">
+        <div class="kv-item"><strong>Business account ID</strong><code id="waba-id">-</code></div>
+        <div class="kv-item"><strong>Sender phone ID</strong><code id="phone-id">-</code></div>
+      </div>
+
+      <h3>Send outbound message</h3>
+      <p>Send a message to a customer phone number in international format (for example: 14155550123).</p>
+      <form id="send-form">
+        <div>
+          <label for="to-input">Customer phone number</label>
+          <input id="to-input" name="to" placeholder="e.g. 14155550123" required />
+        </div>
+        <div>
+          <label for="message-input">Message text</label>
+          <textarea id="message-input" name="message" placeholder="Hi! Your support ticket has been updated." required></textarea>
+        </div>
+        <div class="actions">
+          <button id="send-btn" type="submit">Send Message</button>
+          <button class="secondary" type="button" onclick="refreshMessages()">Refresh Replies</button>
+        </div>
+      </form>
+      <div class="alert error" id="send-error" hidden></div>
+      <div class="alert ok" id="send-success" hidden></div>
+
+      <h3>Customer replies</h3>
+      <p>Recent inbound replies from connected WhatsApp conversations are shown here.</p>
+      <div class="messages" id="msg-list">
+        <div class="message-row">No customer replies yet.</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Data usage and privacy</h2>
+      <ul>
+        <li>Messages are processed to provide the inbox feature and message delivery.</li>
+        <li>This demo stores recent messages in temporary server memory for display.</li>
+        <li>A production deployment should add durable storage, retention policy, and access controls.</li>
+      </ul>
+    </section>
+  </div>
+
+  <script>
+    const API = 'https://temp-backend-idyb.onrender.com';
+    let poller = null;
+    let isConnected = false;
+    let waEmbeddedSession = null;
+
+    function safeText(value) {
+      return String(value == null ? '' : value).replace(/</g, '&lt;');
+    }
+
+    function setStatus(text) {
+      document.getElementById('connect-status').textContent = text;
+    }
+
+    function setAlert(id, msg) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (msg) {
+        el.textContent = msg;
+        el.removeAttribute('hidden');
+      } else {
+        el.setAttribute('hidden', '');
+      }
+    }
+
+    function clearGlobalMessages() {
+      setAlert('global-error', '');
+      setAlert('global-success', '');
+    }
+
+    function clearSendMessages() {
+      setAlert('send-error', '');
+      setAlert('send-success', '');
+    }
+
+    window.addEventListener('message', function (event) {
+      if (!String(event.origin || '').endsWith('facebook.com')) return;
+      let data;
+      try {
+        data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+      } catch (e) {
+        return;
+      }
+      if (!data || data.type !== 'WA_EMBEDDED_SIGNUP') return;
+
+      const ev = data.event;
+      if (
+        ev === 'FINISH' ||
+        ev === 'FINISH_ONLY_WABA' ||
+        ev === 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING' ||
+        ev === 'FINISH_OBO_MIGRATION' ||
+        ev === 'FINISH_GRANT_ONLY_API_ACCESS'
+      ) {
+        const d = data.data || {};
+        waEmbeddedSession = {
+          waba_id: d.waba_id || (d.waba_ids && d.waba_ids[0]) || null,
+          phone_number_id: d.phone_number_id || null
+        };
+      }
+    });
+
+    function waitForEmbeddedSignupData(maxMs) {
+      if (waEmbeddedSession && waEmbeddedSession.waba_id) {
+        return Promise.resolve(waEmbeddedSession);
+      }
+      return new Promise(function (resolve) {
+        const t0 = Date.now();
+        const id = setInterval(function () {
+          if (waEmbeddedSession && waEmbeddedSession.waba_id) {
+            clearInterval(id);
+            resolve(waEmbeddedSession);
+          } else if (Date.now() - t0 > maxMs) {
+            clearInterval(id);
+            resolve(waEmbeddedSession || {});
+          }
+        }, 100);
+      });
+    }
+
+    window.fbAsyncInit = function () {
+      FB.init({
+        appId: '1431126805485839',
+        autoLogAppEvents: true,
+        cookie: true,
+        xfbml: true,
+        version: 'v19.0'
+      });
+    };
+
+    function setConnectedWorkspace(info) {
+      isConnected = true;
+      document.getElementById('workspace').removeAttribute('hidden');
+      document.getElementById('waba-id').textContent = info.wabaId || '-';
+      document.getElementById('phone-id').textContent = info.phoneNumberId || '-';
+      document.getElementById('connect-btn').textContent = 'Reconnect WhatsApp Business';
+      setStatus('Status: Connected and ready to message customers');
+      setAlert('global-success', 'Account connected successfully. You can now send and receive customer messages.');
+      refreshMessages();
+      startMessagePolling();
+    }
+
+    function startMessagePolling() {
+      if (poller) return;
+      poller = setInterval(refreshMessages, 3000);
+    }
+
+    function refreshMessages() {
+      if (!isConnected) return;
+      fetch(API + '/messages')
+        .then(function (res) {
+          return res.json().then(function (data) {
+            if (!res.ok) {
+              throw new Error((data && data.error) || 'Unable to load replies');
+            }
+            return data;
+          });
+        })
+        .then(function (data) {
+          const list = document.getElementById('msg-list');
+          if (!Array.isArray(data) || !data.length) {
+            list.innerHTML = '<div class="message-row">No customer replies yet.</div>';
+            return;
+          }
+          list.innerHTML = data
+            .map(function (m) {
+              return '<div class="message-row">' + safeText(m) + '</div>';
+            })
+            .join('');
+        })
+        .catch(function (err) {
+          setAlert('global-error', 'Unable to load customer replies: ' + (err.message || String(err)));
+        });
+    }
+
+    function connectWhatsApp() {
+      clearGlobalMessages();
+      clearSendMessages();
+      waEmbeddedSession = null;
+      setStatus('Status: Connecting to Meta...');
+
+      FB.login(
+        function (response) {
+          const code = response && response.authResponse && response.authResponse.code;
+          if (!code) {
+            setStatus('Status: Connection cancelled');
+            setAlert('global-error', 'Connection was cancelled before authorization completed.');
+            return;
+          }
+
+          setStatus('Status: Finalizing account setup...');
+          fetch(API + '/exchange-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: code })
+          })
+            .then(function (res) {
+              return res.json().then(function (data) {
+                if (!res.ok) {
+                  const detail =
+                    (data.details && data.details.error && data.details.error.message) || data.error;
+                  throw new Error(detail || 'Token exchange failed');
+                }
+                return data;
+              });
+            })
+            .then(function (data) {
+              return waitForEmbeddedSignupData(5000).then(function (session) {
+                return fetch(API + '/onboard-user', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    access_token: data.access_token,
+                    waba_id: session.waba_id || undefined,
+                    phone_number_id: session.phone_number_id || undefined
+                  })
+                });
+              });
+            })
+            .then(function (res) {
+              return res.json().then(function (j) {
+                if (!res.ok) {
+                  const msg =
+                    (j.details && j.details.error && j.details.error.message) || j.error || 'Setup failed';
+                  throw new Error(msg);
+                }
+                return j;
+              });
+            })
+            .then(function (info) {
+              setConnectedWorkspace(info);
+            })
+            .catch(function (err) {
+              setStatus('Status: Connection failed');
+              setAlert('global-error', 'Unable to connect account: ' + (err.message || String(err)));
+            });
+        },
+        {
+          config_id: '1316274063750803',
+          response_type: 'code',
+          override_default_response_type: true,
+          extras: {
+            setup: {}
+          }
+        }
+      );
+    }
+
+    document.getElementById('send-form').addEventListener('submit', function (event) {
+      event.preventDefault();
+      clearSendMessages();
+      clearGlobalMessages();
+
+      if (!isConnected) {
+        setAlert('send-error', 'Please connect a WhatsApp Business account before sending messages.');
+        return;
+      }
+
+      const to = document.getElementById('to-input').value.trim();
+      const message = document.getElementById('message-input').value.trim();
+      if (!to || !message) {
+        setAlert('send-error', 'Both customer phone number and message text are required.');
+        return;
+      }
+
+      const sendBtn = document.getElementById('send-btn');
+      sendBtn.disabled = true;
+      sendBtn.textContent = 'Sending...';
+
+      fetch(API + '/send-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: to, message: message })
+      })
+        .then(function (res) {
+          return res.json().then(function (data) {
+            if (!res.ok) {
+              const detail = (data.details && data.details.error && data.details.error.message) || data.error;
+              throw new Error(detail || 'Failed to send message');
+            }
+            return data;
+          });
+        })
+        .then(function () {
+          setAlert('send-success', 'Message sent successfully.');
+          document.getElementById('message-input').value = '';
+          refreshMessages();
+        })
+        .catch(function (err) {
+          setAlert('send-error', 'Unable to send message: ' + (err.message || String(err)));
+        })
+        .finally(function () {
+          sendBtn.disabled = false;
+          sendBtn.textContent = 'Send Message';
+        });
+    });
+  </script>
+  <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
+</body>
+</html>
