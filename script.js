@@ -1,6 +1,9 @@
 const API = 'https://temp-backend-idyb.onrender.com';
+const INSTAGRAM_OAUTH_URL =
+  'https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=1438252244655087&redirect_uri=https://temp-backend-idyb.onrender.com/auth/instagram/callback&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights';
 let poller = null;
 let isConnected = false;
+let isInstagramConnected = false;
 let waEmbeddedSession = null;
 let currentStep = 1;
 const TOTAL_STEPS = 5;
@@ -11,6 +14,11 @@ function safeText(value) {
 
 function setStatus(text) {
   document.getElementById('connect-status').textContent = text;
+}
+
+function setInstagramStatus(text) {
+  const el = document.getElementById('instagram-status');
+  if (el) el.textContent = text;
 }
 
 function updateFlowProgress(step) {
@@ -32,7 +40,7 @@ function updateFlowProgress(step) {
 
 function showStep(step) {
   const safeStep = Math.max(1, Math.min(TOTAL_STEPS, step));
-  if (safeStep >= 3 && !isConnected) {
+  if (safeStep >= 3 && !isConnected && !isInstagramConnected) {
     currentStep = 1;
   } else {
     currentStep = safeStep;
@@ -54,6 +62,20 @@ function showStep(step) {
 function setOAuthLoading(loading, text) {
   const row = document.getElementById('oauth-loading');
   const label = document.getElementById('oauth-loading-text');
+  if (!row) return;
+  if (label && text) {
+    label.textContent = text;
+  }
+  if (loading) {
+    row.removeAttribute('hidden');
+  } else {
+    row.setAttribute('hidden', '');
+  }
+}
+
+function setInstagramLoading(loading, text) {
+  const row = document.getElementById('instagram-loading');
+  const label = document.getElementById('instagram-loading-text');
   if (!row) return;
   if (label && text) {
     label.textContent = text;
@@ -87,6 +109,20 @@ function clearSendMessages() {
 }
 
 window.addEventListener('message', function (event) {
+  const payload = typeof event.data === 'object' ? event.data : null;
+  if (payload && payload.type === 'INSTAGRAM_BUSINESS_LOGIN') {
+    if (payload.status === 'success') {
+      setInstagramConnected(payload.data || {});
+      showStep(3);
+    } else {
+      setInstagramLoading(false);
+      setInstagramStatus('Instagram: Not connected');
+      setAlert('global-error', payload.error || 'Instagram login failed.');
+      showStep(1);
+    }
+    return;
+  }
+
   if (!String(event.origin || '').endsWith('facebook.com')) return;
   let data;
   try {
@@ -153,13 +189,57 @@ function setConnectedWorkspace(info) {
   startMessagePolling();
 }
 
+function setInstagramConnected(info) {
+  isInstagramConnected = true;
+  document.getElementById('ig-user-id').textContent = info.igUserId || '-';
+  document.getElementById('ig-username').textContent = info.igUsername || '-';
+  const btn = document.getElementById('connect-instagram-btn');
+  if (btn) btn.textContent = 'Reconnect Instagram';
+  setInstagramStatus('Instagram: Connected and ready for DM webhooks');
+  setAlert('global-success', 'Instagram Business connected successfully.');
+  setInstagramLoading(false);
+  refreshMessages();
+  startMessagePolling();
+}
+
+function connectInstagram() {
+  clearGlobalMessages();
+  showStep(2);
+  setInstagramLoading(true, 'Opening Instagram Business Login...');
+  setInstagramStatus('Instagram: Connecting...');
+
+  const popup = window.open(
+    INSTAGRAM_OAUTH_URL,
+    'instagram_business_login',
+    'width=560,height=720,menubar=no,toolbar=no,status=no'
+  );
+
+  if (!popup) {
+    setInstagramLoading(false);
+    setInstagramStatus('Instagram: Not connected');
+    setAlert('global-error', 'Unable to open Instagram popup. Please allow popups and retry.');
+    showStep(1);
+    return;
+  }
+
+  const watcher = setInterval(function () {
+    if (popup.closed) {
+      clearInterval(watcher);
+      if (!isInstagramConnected) {
+        setInstagramLoading(false);
+        setInstagramStatus('Instagram: Not connected');
+      }
+    }
+  }, 500);
+}
+
 function startMessagePolling() {
   if (poller) return;
   poller = setInterval(refreshMessages, 3000);
 }
 
 function refreshMessages() {
-  if (!isConnected) return;
+  if (!isConnected && !isInstagramConnected) return;
   fetch(API + '/messages')
     .then(function (res) {
       return res.json().then(function (data) {

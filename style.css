@@ -398,12 +398,34 @@ ul {
   overflow: hidden;
 }
 
+.connect-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 0.9rem;
+  margin-bottom: 1rem;
+}
+
 .connect-card::after {
   content: '';
   position: absolute;
   bottom: 0; left: 0; right: 0;
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(37,211,102,0.25), transparent);
+}
+
+.ig-logo-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f58529, #dd2a7b 45%, #8134af 75%, #515bd4);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.04em;
 }
 
 .connect-card-inner {
@@ -538,6 +560,21 @@ button {
   background: #2de871;
   transform: translateY(-1px);
   box-shadow: 0 8px 28px rgba(37,211,102,0.35);
+}
+
+.btn-instagram {
+  background: linear-gradient(135deg, #f58529, #dd2a7b 45%, #8134af 75%, #515bd4);
+  color: #fff;
+  font-weight: 600;
+  padding: 0.65rem 1.2rem;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 20px rgba(221, 42, 123, 0.28);
+  flex-shrink: 0;
+}
+
+.btn-instagram:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 28px rgba(221, 42, 123, 0.34);
 }
 
 .btn-ghost {

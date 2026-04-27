@@ -54,28 +54,46 @@
         <div class="step-intro">
           <div class="step-number-badge">01</div>
           <div>
-            <h2>Step 1: Connect WhatsApp</h2>
-            <p>Initiate Embedded Signup to link your WhatsApp Business Account to Responza.</p>
+            <h2>Step 1: Connect Channels</h2>
+            <p>Connect WhatsApp and Instagram Business to enable messaging and webhook delivery.</p>
           </div>
         </div>
-        <div class="connect-card">
-          <div class="connect-card-inner">
-            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-              <rect width="48" height="48" rx="14" fill="#25d366"/>
-              <path d="M24 8C15.16 8 8 15.16 8 24c0 2.83.74 5.48 2.04 7.78L8 40l8.45-2.2A15.9 15.9 0 0024 40c8.84 0 16-7.16 16-16S32.84 8 24 8zm0 29.12a13.1 13.1 0 01-6.67-1.82l-.47-.28-5.02 1.32 1.33-4.88-.3-.5A13.15 13.15 0 0110.88 24c0-7.24 5.88-13.12 13.12-13.12 7.24 0 13.12 5.88 13.12 13.12 0 7.24-5.88 13.12-13.12 13.12zm7.19-9.83c-.4-.2-2.32-1.14-2.68-1.27-.36-.14-.62-.2-.88.2-.26.39-1.01 1.27-1.24 1.53-.23.26-.46.3-.86.1-.4-.2-1.67-.62-3.18-1.96-1.18-1.05-1.97-2.35-2.2-2.75-.23-.4-.02-.61.17-.8.18-.18.4-.46.6-.7.2-.23.26-.4.4-.66.13-.26.06-.5-.04-.7-.1-.2-.88-2.13-1.2-2.92-.32-.77-.64-.66-.88-.67h-.77c-.26 0-.7.1-1.07.5-.36.39-1.37 1.34-1.37 3.26 0 1.92 1.4 3.77 1.6 4.03.2.27 2.77 4.22 6.71 5.93.94.4 1.67.65 2.24.83.94.3 1.8.26 2.47.16.75-.12 2.32-.95 2.64-1.85.32-.9.32-1.68.23-1.85-.1-.16-.36-.26-.76-.46z" fill="white"/>
-            </svg>
-            <div class="connect-text">
-              <strong>WhatsApp Business</strong>
-              <span>Click to open Meta Embedded Signup</span>
+        <div class="connect-cards">
+          <div class="connect-card">
+            <div class="connect-card-inner">
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                <rect width="48" height="48" rx="14" fill="#25d366"/>
+                <path d="M24 8C15.16 8 8 15.16 8 24c0 2.83.74 5.48 2.04 7.78L8 40l8.45-2.2A15.9 15.9 0 0024 40c8.84 0 16-7.16 16-16S32.84 8 24 8zm0 29.12a13.1 13.1 0 01-6.67-1.82l-.47-.28-5.02 1.32 1.33-4.88-.3-.5A13.15 13.15 0 0110.88 24c0-7.24 5.88-13.12 13.12-13.12 7.24 0 13.12 5.88 13.12 13.12 0 7.24-5.88 13.12-13.12 13.12zm7.19-9.83c-.4-.2-2.32-1.14-2.68-1.27-.36-.14-.62-.2-.88.2-.26.39-1.01 1.27-1.24 1.53-.23.26-.46.3-.86.1-.4-.2-1.67-.62-3.18-1.96-1.18-1.05-1.97-2.35-2.2-2.75-.23-.4-.02-.61.17-.8.18-.18.4-.46.6-.7.2-.23.26-.4.4-.66.13-.26.06-.5-.04-.7-.1-.2-.88-2.13-1.2-2.92-.32-.77-.64-.66-.88-.67h-.77c-.26 0-.7.1-1.07.5-.36.39-1.37 1.34-1.37 3.26 0 1.92 1.4 3.77 1.6 4.03.2.27 2.77 4.22 6.71 5.93.94.4 1.67.65 2.24.83.94.3 1.8.26 2.47.16.75-.12 2.32-.95 2.64-1.85.32-.9.32-1.68.23-1.85-.1-.16-.36-.26-.76-.46z" fill="white"/>
+              </svg>
+              <div class="connect-text">
+                <strong>WhatsApp Business</strong>
+                <span>Open Meta Embedded Signup</span>
+              </div>
+              <button id="connect-btn" type="button" onclick="connectWhatsApp()" class="btn-whatsapp">
+                Connect WhatsApp
+              </button>
             </div>
-            <button id="connect-btn" type="button" onclick="connectWhatsApp()" class="btn-whatsapp">
-              Connect WhatsApp
-            </button>
+          </div>
+          <div class="connect-card">
+            <div class="connect-card-inner">
+              <div class="ig-logo-badge">IG</div>
+              <div class="connect-text">
+                <strong>Instagram Business</strong>
+                <span>OAuth login for Instagram Messaging</span>
+              </div>
+              <button id="connect-instagram-btn" type="button" onclick="connectInstagram()" class="btn-instagram">
+                Connect Instagram
+              </button>
+            </div>
           </div>
         </div>
         <div class="status-row" id="connect-status">
           <span class="status-indicator"></span>
           Status: Not connected
+        </div>
+        <div class="status-row" id="instagram-status">
+          <span class="status-indicator"></span>
+          Instagram: Not connected
         </div>
         <div class="alert error" id="global-error" hidden></div>
         <div class="alert ok" id="global-success" hidden></div>
@@ -108,6 +126,10 @@
             <div class="meta-step-num">04</div>
             <div class="meta-step-text">Finish &amp; return here</div>
           </div>
+        </div>
+        <div class="loader-row" id="instagram-loading" hidden>
+          <div class="spinner" aria-hidden="true"></div>
+          <span id="instagram-loading-text">Waiting for Instagram Business Login to complete...</span>
         </div>
         <div class="loader-row" id="oauth-loading" hidden>
           <div class="spinner" aria-hidden="true"></div>
@@ -144,6 +166,20 @@
               </div>
               <strong>Phone Number ID</strong>
               <code id="phone-id">-</code>
+            </div>
+            <div class="kv-item">
+              <div class="kv-icon">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2.25" y="2.25" width="11.5" height="11.5" rx="3.5" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.5"/><circle cx="11.7" cy="4.3" r=".9" fill="currentColor"/></svg>
+              </div>
+              <strong>Instagram User ID</strong>
+              <code id="ig-user-id">-</code>
+            </div>
+            <div class="kv-item">
+              <div class="kv-icon">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 4.5h10M3 8h10M3 11.5h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+              <strong>Instagram Username</strong>
+              <code id="ig-username">-</code>
             </div>
           </div>
         </div>
@@ -302,6 +338,13 @@
             </div>
             <strong>whatsapp_business_messaging</strong>
             <span>Send and receive customer messages through this inbox.</span>
+          </div>
+          <div class="permission-card">
+            <div class="perm-icon">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="4" stroke="#f56040" stroke-width="1.5"/><circle cx="10" cy="10" r="3.2" stroke="#f56040" stroke-width="1.5"/><circle cx="14.2" cy="5.8" r="1" fill="#f56040"/></svg>
+            </div>
+            <strong>instagram_business_manage_messages</strong>
+            <span>Read Instagram Business DMs and process webhook message events.</span>
           </div>
         </div>
         <div class="actions">
