@@ -148,38 +148,48 @@
           <div class="step-intro">
             <div class="step-number-badge success">03</div>
             <div>
-              <h2>Step 3: Account Connected</h2>
-              <p>Your WhatsApp Business Account is live. Verified IDs are displayed below.</p>
+              <h2>Step 3: Connected Accounts</h2>
+              <p>WhatsApp and Instagram are shown as separate connected channels.</p>
             </div>
           </div>
-          <div class="kv-grid">
-            <div class="kv-item">
-              <div class="kv-icon">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="3" stroke="currentColor" stroke-width="1.5"/><path d="M5 8h6M5 5.5h3M5 10.5h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <div class="channel-grid">
+            <div class="channel-block">
+              <h3 class="channel-title wa">WhatsApp Channel</h3>
+              <div class="kv-grid">
+                <div class="kv-item">
+                  <div class="kv-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="3" stroke="currentColor" stroke-width="1.5"/><path d="M5 8h6M5 5.5h3M5 10.5h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                  </div>
+                  <strong>WABA ID</strong>
+                  <code id="waba-id">-</code>
+                </div>
+                <div class="kv-item">
+                  <div class="kv-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 2h2.5L7 6l-1.5 1.5a9 9 0 003 3L10 9l4 1.5V13A1 1 0 0113 14C6.37 14 1 8.63 1 2a1 1 0 011-1h1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+                  </div>
+                  <strong>Phone Number ID</strong>
+                  <code id="phone-id">-</code>
+                </div>
               </div>
-              <strong>WABA ID</strong>
-              <code id="waba-id">-</code>
             </div>
-            <div class="kv-item">
-              <div class="kv-icon">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 2h2.5L7 6l-1.5 1.5a9 9 0 003 3L10 9l4 1.5V13A1 1 0 0113 14C6.37 14 1 8.63 1 2a1 1 0 011-1h1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+            <div class="channel-block">
+              <h3 class="channel-title ig">Instagram Channel</h3>
+              <div class="kv-grid">
+                <div class="kv-item">
+                  <div class="kv-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2.25" y="2.25" width="11.5" height="11.5" rx="3.5" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.5"/><circle cx="11.7" cy="4.3" r=".9" fill="currentColor"/></svg>
+                  </div>
+                  <strong>Instagram User ID</strong>
+                  <code id="ig-user-id">-</code>
+                </div>
+                <div class="kv-item">
+                  <div class="kv-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 4.5h10M3 8h10M3 11.5h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                  </div>
+                  <strong>Instagram Username</strong>
+                  <code id="ig-username">-</code>
+                </div>
               </div>
-              <strong>Phone Number ID</strong>
-              <code id="phone-id">-</code>
-            </div>
-            <div class="kv-item">
-              <div class="kv-icon">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2.25" y="2.25" width="11.5" height="11.5" rx="3.5" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.5"/><circle cx="11.7" cy="4.3" r=".9" fill="currentColor"/></svg>
-              </div>
-              <strong>Instagram User ID</strong>
-              <code id="ig-user-id">-</code>
-            </div>
-            <div class="kv-item">
-              <div class="kv-icon">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 4.5h10M3 8h10M3 11.5h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-              </div>
-              <strong>Instagram Username</strong>
-              <code id="ig-username">-</code>
             </div>
           </div>
         </div>
@@ -200,7 +210,7 @@
           <div class="step-number-badge">04</div>
           <div>
             <h2>Step 4: Webhook in Action</h2>
-            <p>Send an outbound message or receive one from WhatsApp — both appear below in real time.</p>
+            <p>Incoming messages are separated by channel: WhatsApp inbox and Instagram inbox.</p>
           </div>
         </div>
 
@@ -223,8 +233,8 @@
                 <div class="chat-header-left">
                   <div class="chat-avatar">LC</div>
                   <div>
-                    <strong>Live customer chat</strong>
-                    <span>Webhook deliveries appear here</span>
+                    <strong>WhatsApp inbound chat</strong>
+                    <span>Only WhatsApp webhook deliveries appear here</span>
                   </div>
                 </div>
                 <div class="chat-live-badge">
@@ -232,59 +242,42 @@
                   Live
                 </div>
               </div>
-              <div class="chat-thread" id="msg-list">
+              <div class="chat-thread" id="wa-msg-list">
                 <div class="chat-empty">
                   <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M16 4C9.37 4 4 9.37 4 16c0 2.1.52 4.08 1.44 5.82L4 28l6.36-1.66A11.93 11.93 0 0016 28c6.63 0 12-5.37 12-12S22.63 4 16 4z" stroke="currentColor" stroke-width="1.5"/></svg>
-                  No customer replies yet.
+                  No WhatsApp replies yet.
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- RIGHT: Send composer -->
           <div class="workspace-col">
             <div class="workspace-col-header">
               <div class="workspace-col-label">
-                <span class="col-dot col-dot-send"></span>
-                Send Message
+                <span class="col-dot col-dot-ig"></span>
+                Instagram DM Inbox
               </div>
             </div>
-            <div class="composer-card">
-              <div class="composer-top">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                  <rect width="20" height="20" rx="6" fill="rgba(37,211,102,0.15)"/>
-                  <path d="M10 3a7 7 0 100 14A7 7 0 0010 3zm0 12.25a5.22 5.22 0 01-2.66-.73l-.19-.11-2 .53.53-1.95-.12-.2A5.25 5.25 0 1110 15.25zm2.87-3.93c-.16-.08-.93-.46-1.07-.51-.14-.05-.25-.08-.35.08s-.4.51-.5.61c-.1.1-.18.12-.34.04-.16-.08-.67-.25-1.27-.78-.47-.42-.79-.94-.88-1.1-.09-.16 0-.24.07-.32.07-.07.16-.18.24-.28.08-.1.1-.16.16-.27.05-.1.02-.2-.02-.28-.04-.08-.35-.85-.48-1.16-.13-.31-.26-.27-.35-.27h-.31c-.1 0-.28.04-.43.2-.15.15-.55.54-.55 1.3 0 .77.56 1.51.64 1.61.08.1 1.1 1.69 2.68 2.37.37.16.67.26.9.33.38.12.72.1.99.06.3-.05.93-.38 1.06-.74.13-.36.13-.68.09-.74-.04-.07-.14-.1-.3-.18z" fill="#25d366"/>
-                </svg>
-                <span class="composer-title">WhatsApp Outbound</span>
-              </div>
-
-              <div class="field-group">
-                <label class="field-label" for="send-to">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 2h3L6.5 5l-1.25 1.25A6.5 6.5 0 007.5 8.5L9 7l3 1.5v2A.75.75 0 0111.25 11C4.62 11 .5 7.5.5 2A.75.75 0 011.25 1.25H2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
-                  Recipient phone number
-                </label>
-                <div class="phone-input-wrap">
-                  <span class="phone-prefix">+</span>
-                  <input id="send-to" type="tel" placeholder="1234567890  (with country code, no +)" class="field-input phone-input" autocomplete="off"/>
+            <div class="messages">
+              <div class="chat-header">
+                <div class="chat-header-left">
+                  <div class="chat-avatar">IG</div>
+                  <div>
+                    <strong>Instagram inbound chat</strong>
+                    <span>Only Instagram webhook deliveries appear here</span>
+                  </div>
+                </div>
+                <div class="chat-live-badge">
+                  <span class="chat-dot" aria-hidden="true"></span>
+                  Live
                 </div>
               </div>
-
-              <div class="field-group">
-                <label class="field-label" for="send-msg">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1" y="1" width="10" height="10" rx="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M3.5 4h5M3.5 6.5h3.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-                  Message
-                </label>
-                <textarea id="send-msg" placeholder="Type your message here..." class="field-input field-textarea" rows="4"></textarea>
-                <div class="char-counter"><span id="char-count">0</span>&thinsp;/&thinsp;1024</div>
+              <div class="chat-thread" id="ig-msg-list">
+                <div class="chat-empty">
+                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M16 4C9.37 4 4 9.37 4 16c0 2.1.52 4.08 1.44 5.82L4 28l6.36-1.66A11.93 11.93 0 0016 28c6.63 0 12-5.37 12-12S22.63 4 16 4z" stroke="currentColor" stroke-width="1.5"/></svg>
+                  No Instagram DMs yet.
+                </div>
               </div>
-
-              <div class="alert error" id="send-error" hidden></div>
-              <div class="alert ok" id="send-success" hidden></div>
-
-              <button id="send-btn" type="button" onclick="sendMessage()" class="btn-send">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 2l12 6-12 6V9.5L10 8 2 6.5V2z" fill="currentColor"/></svg>
-                Send via WhatsApp
-              </button>
             </div>
           </div>
 
@@ -310,18 +303,32 @@
             <p>A summary of how Responza uses your WhatsApp data and the permissions required.</p>
           </div>
         </div>
-        <div class="data-usage-list">
-          <div class="data-item">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2l.75 2.25H14l-3.5 2.5 1.25 3.75L9 8.5l-2.75 2 1.25-3.75L4 4.25h4.25L9 2z" stroke="#25d366" stroke-width="1.2" stroke-linejoin="round"/></svg>
-            Messages are collected and displayed in your inbox for instant access.
+        <div class="channel-grid">
+          <div class="channel-block">
+            <h3 class="channel-title wa">WhatsApp Data Usage</h3>
+            <div class="data-usage-list">
+              <div class="data-item">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2l.75 2.25H14l-3.5 2.5 1.25 3.75L9 8.5l-2.75 2 1.25-3.75L4 4.25h4.25L9 2z" stroke="#25d366" stroke-width="1.2" stroke-linejoin="round"/></svg>
+                WhatsApp messages are collected and shown in the WhatsApp inbox only.
+              </div>
+              <div class="data-item">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2l.75 2.25H14l-3.5 2.5 1.25 3.75L9 8.5l-2.75 2 1.25-3.75L4 4.25h4.25L9 2z" stroke="#25d366" stroke-width="1.2" stroke-linejoin="round"/></svg>
+                WhatsApp message data is used for lead identification and routing workflows.
+              </div>
+            </div>
           </div>
-          <div class="data-item">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2l.75 2.25H14l-3.5 2.5 1.25 3.75L9 8.5l-2.75 2 1.25-3.75L4 4.25h4.25L9 2z" stroke="#25d366" stroke-width="1.2" stroke-linejoin="round"/></svg>
-            Message data is used for lead identification and routing workflows.
-          </div>
-          <div class="data-item">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2l.75 2.25H14l-3.5 2.5 1.25 3.75L9 8.5l-2.75 2 1.25-3.75L4 4.25h4.25L9 2z" stroke="#25d366" stroke-width="1.2" stroke-linejoin="round"/></svg>
-            Recent messages are stored in server memory and displayed in your inbox in real time.
+          <div class="channel-block">
+            <h3 class="channel-title ig">Instagram Data Usage</h3>
+            <div class="data-usage-list">
+              <div class="data-item">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2l.75 2.25H14l-3.5 2.5 1.25 3.75L9 8.5l-2.75 2 1.25-3.75L4 4.25h4.25L9 2z" stroke="#f56040" stroke-width="1.2" stroke-linejoin="round"/></svg>
+                Instagram DMs are collected and shown in the Instagram inbox only.
+              </div>
+              <div class="data-item">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2l.75 2.25H14l-3.5 2.5 1.25 3.75L9 8.5l-2.75 2 1.25-3.75L4 4.25h4.25L9 2z" stroke="#f56040" stroke-width="1.2" stroke-linejoin="round"/></svg>
+                Instagram DM data is used for lead identification and routing workflows.
+              </div>
+            </div>
           </div>
         </div>
         <div class="permissions-grid">

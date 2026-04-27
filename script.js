@@ -250,17 +250,37 @@ function refreshMessages() {
       });
     })
     .then(function (data) {
-      const list = document.getElementById('msg-list');
+      const waList = document.getElementById('wa-msg-list');
+      const igList = document.getElementById('ig-msg-list');
+      if (!waList || !igList) return;
+
       if (!Array.isArray(data) || !data.length) {
-        list.innerHTML = '<div class="chat-empty">No customer replies yet.</div>';
+        waList.innerHTML = '<div class="chat-empty">No WhatsApp replies yet.</div>';
+        igList.innerHTML = '<div class="chat-empty">No Instagram DMs yet.</div>';
         return;
       }
-      list.innerHTML = data
-        .map(function (m) {
-          return '<div class="chat-msg">' + safeText(m) + '</div>';
-        })
-        .join('');
-      list.scrollTop = list.scrollHeight;
+
+      const waMessages = [];
+      const igMessages = [];
+      data.forEach(function (m) {
+        const text = String(m == null ? '' : m);
+        if (text.indexOf('[IG:') === 0) {
+          igMessages.push(text);
+        } else {
+          waMessages.push(text);
+        }
+      });
+
+      waList.innerHTML = waMessages.length
+        ? waMessages.map(function (m) { return '<div class="chat-msg">' + safeText(m) + '</div>'; }).join('')
+        : '<div class="chat-empty">No WhatsApp replies yet.</div>';
+
+      igList.innerHTML = igMessages.length
+        ? igMessages.map(function (m) { return '<div class="chat-msg">' + safeText(m) + '</div>'; }).join('')
+        : '<div class="chat-empty">No Instagram DMs yet.</div>';
+
+      waList.scrollTop = waList.scrollHeight;
+      igList.scrollTop = igList.scrollHeight;
     })
     .catch(function (err) {
       setAlert('global-error', 'Unable to load customer replies: ' + (err.message || String(err)));

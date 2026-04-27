@@ -405,6 +405,35 @@ ul {
   margin-bottom: 1rem;
 }
 
+.channel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 0.9rem;
+}
+
+.channel-block {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  padding: 0.9rem;
+}
+
+.channel-title {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-display);
+  font-size: 0.86rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.channel-title.wa {
+  color: var(--accent);
+}
+
+.channel-title.ig {
+  color: #f56040;
+}
+
 .connect-card::after {
   content: '';
   position: absolute;
@@ -972,6 +1001,11 @@ button:disabled {
 .col-dot-send {
   background: #4a67ff;
   box-shadow: 0 0 6px rgba(74,103,255,0.4);
+}
+
+.col-dot-ig {
+  background: #f56040;
+  box-shadow: 0 0 6px rgba(245,96,64,0.45);
 }
 
 /* Make the messages panel fill the column */
