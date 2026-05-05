@@ -170,12 +170,9 @@ function renderInboxUi() {
       var prev = truncate(lastText, 48);
       var active = tid === selectedThreadId ? ' is-active' : '';
       var uname = participantUsername(tid);
-      var kicker = uname ? 'Direct message' : 'Instagram ID';
+      var kicker = 'Direct message';
       var nameClass = 'thread-pick-name' + (uname ? '' : ' thread-pick-name--id');
-      var nameLine = uname ? '@' + safeText(uname) : safeText(shortId(tid));
-      var idRow = uname
-        ? '<span class="thread-pick-id">' + safeText(shortId(tid)) + '</span>'
-        : '';
+      var nameLine = uname ? '@' + safeText(uname) : 'Instagram user';
       return (
         '<button type="button" class="thread-pick' +
         active +
@@ -190,7 +187,6 @@ function renderInboxUi() {
         '">' +
         nameLine +
         '</span>' +
-        idRow +
         '<span class="thread-pick-preview">' +
         safeText(prev || '(no text)') +
         '</span></button>'
@@ -211,17 +207,13 @@ function renderInboxUi() {
         '</div>' +
         '<div class="inbox-chat-sub">' +
         nameBit +
-        '<span class="inbox-chat-meta">ID <code>' +
-        safeText(shortId(selectedThreadId)) +
-        '</code></span> · Messaged <strong>' +
+        'Messaged <strong>' +
         safeText(biz) +
         '</strong></div>';
     } else {
       headerEl.innerHTML =
         '<div class="inbox-chat-title">Conversation</div>' +
-        '<div class="inbox-chat-sub">ID <code>' +
-        safeText(shortId(selectedThreadId)) +
-        '</code> · They messaged <strong>' +
+        '<div class="inbox-chat-sub">Messaged <strong>' +
         safeText(biz) +
         '</strong></div>';
     }
@@ -236,16 +228,13 @@ function renderInboxUi() {
         var isOut = msg.direction === 'out';
         var cls = isOut ? 'bubble bubble-out' : 'bubble bubble-in';
         var role = isOut ? 'You' : 'Customer';
-        var roleNote = isOut ? '· sent from your account' : '· wrote to you';
         return (
           '<div class="bubble-wrap bubble-wrap-' +
           (isOut ? 'out' : 'in') +
           '">' +
           '<span class="bubble-label">' +
           safeText(role) +
-          ' <span class="bubble-label-note">' +
-          safeText(roleNote) +
-          '</span></span>' +
+          '</span>' +
           '<div class="' +
           cls +
           '">' +
