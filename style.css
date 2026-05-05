@@ -238,19 +238,82 @@ button {
 }
 
 /* Inbox */
+.inbox-signed-in {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  margin: -0.35rem 0 0.85rem;
+}
+
+.inbox-signed-in strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
 .inbox-bar {
   display: flex;
   justify-content: flex-end;
   margin-bottom: 0.5rem;
 }
 
+.inbox-split {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.inbox-sidebar {
+  min-width: 0;
+}
+
+.inbox-pane {
+  min-width: 0;
+}
+
+.inbox-section-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--faint);
+  margin-bottom: 0.4rem;
+}
+
+.inbox-chat-header {
+  margin-bottom: 0.45rem;
+}
+
+.inbox-chat-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.inbox-chat-sub {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 0.2rem;
+}
+
+.inbox-chat-sub code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.72rem;
+  padding: 0.1rem 0.3rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.thread-list-muted {
+  font-size: 0.8125rem;
+  padding: 0.35rem 0;
+  color: var(--muted);
+}
+
 .thread-list {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  max-height: 6.5rem;
+  max-height: 8.5rem;
   overflow-y: auto;
-  margin-bottom: 0.65rem;
+  margin-bottom: 0;
   padding-right: 2px;
 }
 
@@ -259,14 +322,30 @@ button {
   width: 100%;
   text-align: left;
   padding: 0.45rem 0.55rem;
-  font-size: 0.75rem;
-  font-family: ui-monospace, monospace;
+  font-size: 0.81rem;
+  font-family: var(--font);
   color: var(--muted);
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border);
   border-radius: 6px;
   cursor: pointer;
   line-height: 1.35;
+}
+
+.thread-pick-kicker {
+  display: block;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--faint);
+  margin-bottom: 0.15rem;
+}
+
+.thread-pick-id {
+  display: block;
+  font-family: ui-monospace, monospace;
+  font-size: 0.72rem;
+  color: var(--text);
 }
 
 .thread-pick:hover {
@@ -284,8 +363,8 @@ button {
   display: block;
   font-family: var(--font);
   color: var(--faint);
-  font-size: 0.6875rem;
-  margin-top: 0.15rem;
+  font-size: 0.68rem;
+  margin-top: 0.35rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -312,8 +391,40 @@ button {
   padding: 2rem 0.5rem;
 }
 
+.bubble-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  max-width: 94%;
+}
+
+.bubble-wrap-in {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+.bubble-wrap-out {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.bubble-label {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--faint);
+}
+
+.bubble-label-note {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 0.65rem;
+  color: var(--muted);
+  font-weight: 400;
+}
+
 .bubble {
-  max-width: 92%;
+  max-width: 100%;
   font-size: 0.8125rem;
   padding: 0.4rem 0.55rem;
   border-radius: 8px;
@@ -322,16 +433,14 @@ button {
 }
 
 .bubble-in {
-  align-self: flex-start;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--border);
   color: var(--text);
 }
 
 .bubble-out {
-  align-self: flex-end;
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   color: var(--text);
 }
 

@@ -9,6 +9,7 @@ const TOTAL_STEPS = 5;
 
 let inboxRows = [];
 let selectedThreadId = null;
+let businessIgUsername = '';
 
 function safeText(value) {
   return String(value == null ? '' : value).replace(/</g, '&lt;');
@@ -103,26 +104,44 @@ function updateComposerState() {
   var ta = document.getElementById('reply-input');
   var btn = document.getElementById('reply-send');
   var ok = Boolean(selectedThreadId);
+  var who = businessIgUsername ? '@' + businessIgUsername : 'your account';
   if (ta) {
     ta.disabled = !ok;
-    ta.placeholder = ok ? 'Write a reply…' : 'Select a chat to reply…';
+    ta.placeholder = ok ? 'Message as ' + who + '…' : 'Pick someone from the list…';
   }
   if (btn) btn.disabled = !ok;
+}
+
+function updateInboxChrome() {
+  var bar = document.getElementById('inbox-signed-in');
+  var h = document.getElementById('inbox-business-handle');
+  if (bar && h) {
+    if (businessIgUsername) {
+      h.textContent = '@' + businessIgUsername;
+      bar.removeAttribute('hidden');
+    } else {
+      bar.setAttribute('hidden', '');
+    }
+  }
 }
 
 function renderInboxUi() {
   var listEl = document.getElementById('thread-list');
   var chatEl = document.getElementById('chat-stream');
+  var headerEl = document.getElementById('inbox-chat-header');
   if (!listEl || !chatEl) return;
+
+  updateInboxChrome();
 
   var grouped = groupThreads(inboxRows);
   var order = grouped.order;
   var by = grouped.by;
 
   if (!order.length) {
-    listEl.innerHTML = '<p class="muted" style="font-size:0.8125rem;padding:0.35rem 0;">No conversations yet.</p>';
+    listEl.innerHTML = '<p class="thread-list-muted">Nobody has messaged your account yet.</p>';
     selectedThreadId = null;
-    chatEl.innerHTML = '<div class="chat-empty">Nothing to show.</div>';
+    if (headerEl) headerEl.innerHTML = '';
+    chatEl.innerHTML = '<div class="chat-empty">When someone DMs your professional account, their thread appears in the list.</div>';
     updateComposerState();
     return;
   }
@@ -146,22 +165,52 @@ function renderInboxUi() {
         '" data-thread-id="' +
         escapeHtmlAttr(tid) +
         '">' +
+        '<span class="thread-pick-kicker">Their Instagram id</span>' +
+        '<span class="thread-pick-id">' +
         safeText(shortId(tid)) +
+        '</span>' +
         '<span class="thread-pick-preview">' +
-        safeText(prev || '(empty)') +
+        safeText(prev || '(no text)') +
         '</span></button>'
       );
     })
     .join('');
 
+  if (headerEl && selectedThreadId) {
+    headerEl.innerHTML =
+      '<div class="inbox-chat-title">Conversation with this contact</div>' +
+      '<div class="inbox-chat-sub">ID <code>' +
+      safeText(shortId(selectedThreadId)) +
+      '</code> · They messaged <strong>' +
+      safeText(businessIgUsername ? '@' + businessIgUsername : 'your account') +
+      '</strong></div>';
+  }
+
   var stream = selectedThreadId && by[selectedThreadId] ? by[selectedThreadId] : [];
   if (!stream.length) {
-    chatEl.innerHTML = '<div class="chat-empty">Nothing to show.</div>';
+    chatEl.innerHTML = '<div class="chat-empty">No messages in this thread.</div>';
   } else {
     chatEl.innerHTML = stream
       .map(function (msg) {
-        var cls = msg.direction === 'out' ? 'bubble bubble-out' : 'bubble bubble-in';
-        return '<div class="' + cls + '">' + safeText(msg.text) + '</div>';
+        var isOut = msg.direction === 'out';
+        var cls = isOut ? 'bubble bubble-out' : 'bubble bubble-in';
+        var role = isOut ? 'You' : 'Customer';
+        var roleNote = isOut ? '· sent from your account' : '· wrote to you';
+        return (
+          '<div class="bubble-wrap bubble-wrap-' +
+          (isOut ? 'out' : 'in') +
+          '">' +
+          '<span class="bubble-label">' +
+          safeText(role) +
+          ' <span class="bubble-label-note">' +
+          safeText(roleNote) +
+          '</span></span>' +
+          '<div class="' +
+          cls +
+          '">' +
+          safeText(msg.text) +
+          '</div></div>'
+        );
       })
       .join('');
     chatEl.scrollTop = chatEl.scrollHeight;
@@ -248,6 +297,7 @@ window.addEventListener('message', function (event) {
 
 function setInstagramConnected(info) {
   isInstagramConnected = true;
+  businessIgUsername = info.igUsername ? String(info.igUsername) : '';
   document.getElementById('ig-user-id').textContent = info.igUserId || '—';
   document.getElementById('ig-username').textContent = info.igUsername || '—';
   var btn = document.getElementById('connect-instagram-btn');

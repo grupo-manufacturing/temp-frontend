@@ -69,17 +69,28 @@
       </section>
 
       <section class="flow-step" id="step-4" data-step="4">
-        <h2 class="step-heading">Inbox</h2>
-        <p class="step-copy">Webhooks grouped by sender. Select a chat to read and reply.</p>
+        <h2 class="step-heading">Your inbox</h2>
+        <p class="step-copy">Your connected professional account’s DMs. Each row is someone who wrote to you; you reply as your account (Instagram’s 24‑hour reply window applies).</p>
+        <p class="inbox-signed-in" id="inbox-signed-in" hidden>
+          Replying as <strong id="inbox-business-handle">—</strong>
+        </p>
         <div class="inbox-bar">
           <button class="btn-line btn-sm" type="button" onclick="refreshMessages()">Refresh</button>
         </div>
-        <div id="thread-list" class="thread-list" aria-label="Conversations"></div>
-        <div id="chat-stream" class="chat-stream" aria-live="polite"></div>
+        <div class="inbox-split">
+          <div class="inbox-sidebar">
+            <p class="inbox-section-label">Who messaged you</p>
+            <div id="thread-list" class="thread-list" aria-label="People who messaged your account"></div>
+          </div>
+          <div class="inbox-pane">
+            <div id="inbox-chat-header" class="inbox-chat-header" aria-live="polite"></div>
+            <div id="chat-stream" class="chat-stream" aria-live="polite"></div>
+          </div>
+        </div>
         <div class="compose">
-          <label class="sr-only" for="reply-input">Reply</label>
-          <textarea id="reply-input" class="reply-input" rows="2" maxlength="1000" placeholder="Select a chat to reply…" disabled></textarea>
-          <button type="button" id="reply-send" class="btn-solid btn-send-reply" disabled>Send</button>
+          <label class="sr-only" for="reply-input">Reply as your account</label>
+          <textarea id="reply-input" class="reply-input" rows="2" maxlength="1000" placeholder="Select a conversation…" disabled></textarea>
+          <button type="button" id="reply-send" class="btn-solid btn-send-reply" disabled>Send as you</button>
         </div>
         <p class="err" id="inbox-error" hidden></p>
         <div class="acts">
