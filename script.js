@@ -1,85 +1,214 @@
 const API = 'https://temp-backend-idyb.onrender.com';
 const INSTAGRAM_OAUTH_URL =
   'https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=1438252244655087&redirect_uri=https://temp-backend-idyb.onrender.com/auth/instagram/callback&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights';
+
 let poller = null;
-let isConnected = false;
 let isInstagramConnected = false;
-let waEmbeddedSession = null;
 let currentStep = 1;
 const TOTAL_STEPS = 5;
+
+let inboxRows = [];
+let selectedThreadId = null;
 
 function safeText(value) {
   return String(value == null ? '' : value).replace(/</g, '&lt;');
 }
 
-function setStatus(text) {
-  document.getElementById('connect-status').textContent = text;
+function escapeHtmlAttr(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;');
+}
+
+function shortId(id) {
+  var s = String(id);
+  if (s.length <= 14) return s;
+  return s.slice(0, 6) + '…' + s.slice(-6);
+}
+
+function truncate(str, max) {
+  var t = String(str || '').replace(/\s+/g, ' ').trim();
+  if (t.length <= max) return t;
+  return t.slice(0, max - 1) + '…';
+}
+
+function normalizeMessage(raw) {
+  if (raw && typeof raw === 'object' && raw.threadUserId) {
+    return {
+      threadUserId: String(raw.threadUserId),
+      direction: raw.direction === 'out' ? 'out' : 'in',
+      text: String(raw.text != null ? raw.text : ''),
+      at: typeof raw.at === 'number' ? raw.at : 0
+    };
+  }
+  var s = String(raw || '');
+  var m = /^\[IG:([^\]]+)\]\s*([\s\S]+)$/.exec(s);
+  if (m) {
+    return {
+      threadUserId: m[1],
+      direction: 'in',
+      text: m[2],
+      at: 0
+    };
+  }
+  return null;
+}
+
+function groupThreads(rows) {
+  var by = {};
+  rows.forEach(function (msg) {
+    if (!by[msg.threadUserId]) by[msg.threadUserId] = [];
+    by[msg.threadUserId].push(msg);
+  });
+  Object.keys(by).forEach(function (tid) {
+    by[tid].sort(function (a, b) {
+      return (a.at || 0) - (b.at || 0);
+    });
+  });
+  var ids = Object.keys(by);
+  ids.sort(function (a, b) {
+    function last(atid) {
+      var arr = by[atid];
+      var lastAt = 0;
+      arr.forEach(function (x) {
+        if ((x.at || 0) > lastAt) lastAt = x.at || 0;
+      });
+      return lastAt;
+    }
+    return last(b) - last(a);
+  });
+  return { by: by, order: ids };
 }
 
 function setInstagramStatus(text) {
-  const el = document.getElementById('instagram-status');
+  var el = document.getElementById('instagram-status');
   if (el) el.textContent = text;
 }
 
 function updateFlowProgress(step) {
-  const el = document.getElementById('flow-progress');
-  if (el) {
-    el.innerHTML = '<span class="pill-dot"></span>Step ' + step + ' of ' + TOTAL_STEPS;
+  var label = document.getElementById('flow-progress');
+  if (label) {
+    label.textContent = step + ' / ' + TOTAL_STEPS;
   }
-  const fill = document.getElementById('track-fill');
-  if (fill) {
-    fill.style.width = ((step - 1) / (TOTAL_STEPS - 1) * 100) + '%';
+  var bar = document.getElementById('track-fill');
+  if (bar) {
+    bar.style.width = ((step - 1) / (TOTAL_STEPS - 1) * 100) + '%';
   }
-  document.querySelectorAll('.track-dot').forEach(function (dot) {
-    const n = Number(dot.getAttribute('data-step-dot'));
-    dot.classList.remove('active', 'done');
-    if (n === step) dot.classList.add('active');
-    else if (n < step) dot.classList.add('done');
-  });
+  var wrap = document.getElementById('progress-bar');
+  if (wrap) wrap.setAttribute('aria-valuenow', String(step));
+}
+
+function updateComposerState() {
+  var ta = document.getElementById('reply-input');
+  var btn = document.getElementById('reply-send');
+  var ok = Boolean(selectedThreadId);
+  if (ta) {
+    ta.disabled = !ok;
+    ta.placeholder = ok ? 'Write a reply…' : 'Select a chat to reply…';
+  }
+  if (btn) btn.disabled = !ok;
+}
+
+function renderInboxUi() {
+  var listEl = document.getElementById('thread-list');
+  var chatEl = document.getElementById('chat-stream');
+  if (!listEl || !chatEl) return;
+
+  var grouped = groupThreads(inboxRows);
+  var order = grouped.order;
+  var by = grouped.by;
+
+  if (!order.length) {
+    listEl.innerHTML = '<p class="muted" style="font-size:0.8125rem;padding:0.35rem 0;">No conversations yet.</p>';
+    selectedThreadId = null;
+    chatEl.innerHTML = '<div class="chat-empty">Nothing to show.</div>';
+    updateComposerState();
+    return;
+  }
+
+  if (selectedThreadId && !by[selectedThreadId]) {
+    selectedThreadId = order[0] || null;
+  }
+  if (!selectedThreadId) {
+    selectedThreadId = order[0];
+  }
+
+  listEl.innerHTML = order
+    .map(function (tid) {
+      var msgs = by[tid];
+      var lastText = msgs.length ? msgs[msgs.length - 1].text : '';
+      var prev = truncate(lastText, 48);
+      var active = tid === selectedThreadId ? ' is-active' : '';
+      return (
+        '<button type="button" class="thread-pick' +
+        active +
+        '" data-thread-id="' +
+        escapeHtmlAttr(tid) +
+        '">' +
+        safeText(shortId(tid)) +
+        '<span class="thread-pick-preview">' +
+        safeText(prev || '(empty)') +
+        '</span></button>'
+      );
+    })
+    .join('');
+
+  var stream = selectedThreadId && by[selectedThreadId] ? by[selectedThreadId] : [];
+  if (!stream.length) {
+    chatEl.innerHTML = '<div class="chat-empty">Nothing to show.</div>';
+  } else {
+    chatEl.innerHTML = stream
+      .map(function (msg) {
+        var cls = msg.direction === 'out' ? 'bubble bubble-out' : 'bubble bubble-in';
+        return '<div class="' + cls + '">' + safeText(msg.text) + '</div>';
+      })
+      .join('');
+    chatEl.scrollTop = chatEl.scrollHeight;
+  }
+
+  updateComposerState();
+}
+
+function setInboxError(msg) {
+  var el = document.getElementById('inbox-error');
+  if (!el) return;
+  if (msg) {
+    el.textContent = msg;
+    el.removeAttribute('hidden');
+  } else {
+    el.setAttribute('hidden', '');
+  }
 }
 
 function showStep(step) {
-  const safeStep = Math.max(1, Math.min(TOTAL_STEPS, step));
-  if (safeStep >= 3 && !isConnected && !isInstagramConnected) {
+  var safeStep = Math.max(1, Math.min(TOTAL_STEPS, step));
+  if (safeStep >= 3 && !isInstagramConnected) {
     currentStep = 1;
   } else {
     currentStep = safeStep;
   }
 
-  const steps = document.querySelectorAll('.flow-step');
-  steps.forEach(function (node) {
-    const isActive = Number(node.getAttribute('data-step')) === currentStep;
+  if (currentStep === 1) {
+    setInstagramLoading(false);
+  }
+
+  document.querySelectorAll('.flow-step').forEach(function (node) {
+    var isActive = Number(node.getAttribute('data-step')) === currentStep;
     node.classList.toggle('is-active', isActive);
-    if (isActive) {
-      node.removeAttribute('hidden');
-    } else {
-      node.setAttribute('hidden', '');
-    }
   });
   updateFlowProgress(currentStep);
-}
 
-function setOAuthLoading(loading, text) {
-  const row = document.getElementById('oauth-loading');
-  const label = document.getElementById('oauth-loading-text');
-  if (!row) return;
-  if (label && text) {
-    label.textContent = text;
-  }
-  if (loading) {
-    row.removeAttribute('hidden');
-  } else {
-    row.setAttribute('hidden', '');
+  if (currentStep === 4 && isInstagramConnected) {
+    refreshMessages();
   }
 }
 
 function setInstagramLoading(loading, text) {
-  const row = document.getElementById('instagram-loading');
-  const label = document.getElementById('instagram-loading-text');
+  var row = document.getElementById('instagram-loading');
+  var lbl = document.getElementById('instagram-loading-text');
   if (!row) return;
-  if (label && text) {
-    label.textContent = text;
-  }
+  if (lbl && text) lbl.textContent = text;
   if (loading) {
     row.removeAttribute('hidden');
   } else {
@@ -87,8 +216,8 @@ function setInstagramLoading(loading, text) {
   }
 }
 
-function setAlert(id, msg) {
-  const el = document.getElementById(id);
+function setError(msg) {
+  var el = document.getElementById('global-error');
   if (!el) return;
   if (msg) {
     el.textContent = msg;
@@ -99,104 +228,31 @@ function setAlert(id, msg) {
 }
 
 function clearGlobalMessages() {
-  setAlert('global-error', '');
-  setAlert('global-success', '');
-}
-
-function clearSendMessages() {
-  setAlert('send-error', '');
-  setAlert('send-success', '');
+  setError('');
 }
 
 window.addEventListener('message', function (event) {
-  const payload = typeof event.data === 'object' ? event.data : null;
+  var payload = typeof event.data === 'object' ? event.data : null;
   if (payload && payload.type === 'INSTAGRAM_BUSINESS_LOGIN') {
     if (payload.status === 'success') {
       setInstagramConnected(payload.data || {});
       showStep(3);
     } else {
       setInstagramLoading(false);
-      setInstagramStatus('Instagram: Not connected');
-      setAlert('global-error', payload.error || 'Instagram login failed.');
+      setInstagramStatus('Not connected.');
+      setError(payload.error || 'Authorization failed.');
       showStep(1);
     }
-    return;
-  }
-
-  if (!String(event.origin || '').endsWith('facebook.com')) return;
-  let data;
-  try {
-    data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-  } catch (e) {
-    return;
-  }
-  if (!data || data.type !== 'WA_EMBEDDED_SIGNUP') return;
-
-  const ev = data.event;
-  if (
-    ev === 'FINISH' ||
-    ev === 'FINISH_ONLY_WABA' ||
-    ev === 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING' ||
-    ev === 'FINISH_OBO_MIGRATION' ||
-    ev === 'FINISH_GRANT_ONLY_API_ACCESS'
-  ) {
-    const d = data.data || {};
-    waEmbeddedSession = {
-      waba_id: d.waba_id || (d.waba_ids && d.waba_ids[0]) || null,
-      phone_number_id: d.phone_number_id || null
-    };
   }
 });
 
-function waitForEmbeddedSignupData(maxMs) {
-  if (waEmbeddedSession && waEmbeddedSession.waba_id) {
-    return Promise.resolve(waEmbeddedSession);
-  }
-  return new Promise(function (resolve) {
-    const t0 = Date.now();
-    const id = setInterval(function () {
-      if (waEmbeddedSession && waEmbeddedSession.waba_id) {
-        clearInterval(id);
-        resolve(waEmbeddedSession);
-      } else if (Date.now() - t0 > maxMs) {
-        clearInterval(id);
-        resolve(waEmbeddedSession || {});
-      }
-    }, 100);
-  });
-}
-
-window.fbAsyncInit = function () {
-  FB.init({
-    appId: '1339299584731362',
-    autoLogAppEvents: true,
-    cookie: true,
-    xfbml: true,
-    version: 'v19.0'
-  });
-};
-
-function setConnectedWorkspace(info) {
-  isConnected = true;
-  document.getElementById('waba-id').textContent = info.wabaId || '-';
-  document.getElementById('phone-id').textContent = info.phoneNumberId || '-';
-  document.getElementById('connect-btn').textContent = 'Reconnect WhatsApp';
-  setStatus('Status: Connected and ready to message customers');
-  setAlert('global-success', 'Account connected successfully. You can now send and receive customer messages.');
-  setOAuthLoading(false);
-  showStep(3);
-  refreshMessages();
-  startMessagePolling();
-}
-
 function setInstagramConnected(info) {
   isInstagramConnected = true;
-  document.getElementById('ig-user-id').textContent = info.igUserId || '-';
-  document.getElementById('ig-username').textContent = info.igUsername || '-';
-  const btn = document.getElementById('connect-instagram-btn');
-  if (btn) btn.textContent = 'Reconnect Instagram';
-  setInstagramStatus('Instagram: Connected and ready for DM webhooks');
-  setAlert('global-success', 'Instagram Business connected successfully.');
+  document.getElementById('ig-user-id').textContent = info.igUserId || '—';
+  document.getElementById('ig-username').textContent = info.igUsername || '—';
+  var btn = document.getElementById('connect-instagram-btn');
+  if (btn) btn.textContent = 'Reconnect';
+  setInstagramStatus('Connected. Webhooks ready.');
   setInstagramLoading(false);
   refreshMessages();
   startMessagePolling();
@@ -205,10 +261,10 @@ function setInstagramConnected(info) {
 function connectInstagram() {
   clearGlobalMessages();
   showStep(2);
-  setInstagramLoading(true, 'Opening Instagram Business Login...');
-  setInstagramStatus('Instagram: Connecting...');
+  setInstagramLoading(true, 'Complete login in the popup…');
+  setInstagramStatus('Connecting…');
 
-  const popup = window.open(
+  var popup = window.open(
     INSTAGRAM_OAUTH_URL,
     'instagram_business_login',
     'width=560,height=720,menubar=no,toolbar=no,status=no'
@@ -216,18 +272,18 @@ function connectInstagram() {
 
   if (!popup) {
     setInstagramLoading(false);
-    setInstagramStatus('Instagram: Not connected');
-    setAlert('global-error', 'Unable to open Instagram popup. Please allow popups and retry.');
+    setInstagramStatus('Not connected.');
+    setError('Pop-up blocked. Allow pop-ups and try again.');
     showStep(1);
     return;
   }
 
-  const watcher = setInterval(function () {
+  var watcher = setInterval(function () {
     if (popup.closed) {
       clearInterval(watcher);
       if (!isInstagramConnected) {
         setInstagramLoading(false);
-        setInstagramStatus('Instagram: Not connected');
+        setInstagramStatus('Not connected.');
       }
     }
   }, 500);
@@ -239,191 +295,57 @@ function startMessagePolling() {
 }
 
 function refreshMessages() {
-  if (!isConnected && !isInstagramConnected) return;
-  fetch(API + '/messages')
+  if (!isInstagramConnected) return Promise.resolve();
+
+  var listEl = document.getElementById('thread-list');
+  var chatEl = document.getElementById('chat-stream');
+  if (!listEl || !chatEl) return Promise.resolve();
+
+  setInboxError('');
+
+  return fetch(API + '/messages')
     .then(function (res) {
       return res.json().then(function (data) {
         if (!res.ok) {
-          throw new Error((data && data.error) || 'Unable to load replies');
+          throw new Error((data && data.error) || 'Unable to load messages');
         }
         return data;
       });
     })
     .then(function (data) {
-      const waList = document.getElementById('wa-msg-list');
-      const igList = document.getElementById('ig-msg-list');
-      if (!waList || !igList) return;
-
-      if (!Array.isArray(data) || !data.length) {
-        waList.innerHTML = '<div class="chat-empty">No WhatsApp replies yet.</div>';
-        igList.innerHTML = '<div class="chat-empty">No Instagram DMs yet.</div>';
-        return;
-      }
-
-      const waMessages = [];
-      const igMessages = [];
-      data.forEach(function (m) {
-        const text = String(m == null ? '' : m);
-        if (text.indexOf('[IG:') === 0) {
-          igMessages.push(text);
-        } else {
-          waMessages.push(text);
-        }
+      inboxRows = [];
+      if (!Array.isArray(data)) return;
+      data.forEach(function (raw) {
+        var n = normalizeMessage(raw);
+        if (n) inboxRows.push(n);
       });
-
-      waList.innerHTML = waMessages.length
-        ? waMessages.map(function (m) { return '<div class="chat-msg">' + safeText(m) + '</div>'; }).join('')
-        : '<div class="chat-empty">No WhatsApp replies yet.</div>';
-
-      igList.innerHTML = igMessages.length
-        ? igMessages.map(function (m) { return '<div class="chat-msg">' + safeText(m) + '</div>'; }).join('')
-        : '<div class="chat-empty">No Instagram DMs yet.</div>';
-
-      waList.scrollTop = waList.scrollHeight;
-      igList.scrollTop = igList.scrollHeight;
+      renderInboxUi();
     })
     .catch(function (err) {
-      setAlert('global-error', 'Unable to load customer replies: ' + (err.message || String(err)));
+      var msg = err.message || String(err);
+      if (currentStep === 4) {
+        setInboxError(msg);
+      } else {
+        setError('Inbox: ' + msg);
+      }
     });
 }
 
-function connectWhatsApp() {
-  clearGlobalMessages();
-  waEmbeddedSession = null;
-  showStep(2);
-  setOAuthLoading(true, 'Opening Embedded Signup...');
-  setStatus('Status: Connecting to Meta...');
+function sendReply() {
+  var ta = document.getElementById('reply-input');
+  var sendBtn = document.getElementById('reply-send');
+  if (!selectedThreadId || !ta || !sendBtn) return;
 
-  FB.login(
-    function (response) {
-      const code = response && response.authResponse && response.authResponse.code;
-      if (!code) {
-        setOAuthLoading(false);
-        setStatus('Status: Connection cancelled');
-        setAlert('global-error', 'Connection was cancelled before authorization completed.');
-        showStep(1);
-        return;
-      }
+  var text = (ta.value || '').trim();
+  if (!text) return;
 
-      setOAuthLoading(true, 'Finalizing account setup...');
-      setStatus('Status: Finalizing account setup...');
-      fetch(API + '/exchange-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: code })
-      })
-        .then(function (res) {
-          return res.json().then(function (data) {
-            if (!res.ok) {
-              const detail =
-                (data.details && data.details.error && data.details.error.message) || data.error;
-              throw new Error(detail || 'Token exchange failed');
-            }
-            return data;
-          });
-        })
-        .then(function (data) {
-          return waitForEmbeddedSignupData(5000).then(function (session) {
-            return fetch(API + '/onboard-user', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                access_token: data.access_token,
-                waba_id: session.waba_id || undefined,
-                phone_number_id: session.phone_number_id || undefined
-              })
-            });
-          });
-        })
-        .then(function (res) {
-          return res.json().then(function (j) {
-            if (!res.ok) {
-              const msg =
-                (j.details && j.details.error && j.details.error.message) || j.error || 'Setup failed';
-              throw new Error(msg);
-            }
-            return j;
-          });
-        })
-        .then(function (info) {
-          setConnectedWorkspace(info);
-        })
-        .catch(function (err) {
-          setOAuthLoading(false);
-          setStatus('Status: Connection failed');
-          setAlert('global-error', 'Unable to connect account: ' + (err.message || String(err)));
-          showStep(1);
-        });
-    },
-    {
-      config_id: '865515573285412',
-      response_type: 'code',
-      override_default_response_type: true,
-      extras: {
-        setup: {}
-      }
-    }
-  );
-}
+  setInboxError('');
+  sendBtn.disabled = true;
 
-document.querySelectorAll('[data-next-step]').forEach(function (btn) {
-  btn.addEventListener('click', function () {
-    const nextStep = Number(btn.getAttribute('data-next-step'));
-    showStep(nextStep);
-  });
-});
-
-document.querySelectorAll('[data-prev-step]').forEach(function (btn) {
-  btn.addEventListener('click', function () {
-    const prevStep = Number(btn.getAttribute('data-prev-step'));
-    showStep(prevStep);
-  });
-});
-
-showStep(1);
-
-// ── Send Message ──────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', function () {
-  var msgArea = document.getElementById('send-msg');
-  var charCount = document.getElementById('char-count');
-  if (msgArea && charCount) {
-    msgArea.addEventListener('input', function () {
-      var len = msgArea.value.length;
-      charCount.textContent = len;
-      charCount.style.color = len > 900 ? '#f08080' : '';
-    });
-  }
-});
-
-function sendMessage() {
-  var to = (document.getElementById('send-to').value || '').trim();
-  var message = (document.getElementById('send-msg').value || '').trim();
-  var btn = document.getElementById('send-btn');
-
-  setAlert('send-error', '');
-  setAlert('send-success', '');
-
-  if (!to) {
-    setAlert('send-error', 'Please enter a recipient phone number (include country code, no + sign).');
-    return;
-  }
-  if (!message) {
-    setAlert('send-error', 'Please enter a message before sending.');
-    return;
-  }
-  if (message.length > 1024) {
-    setAlert('send-error', 'Message is too long. Please keep it under 1024 characters.');
-    return;
-  }
-
-  btn.disabled = true;
-  var original = btn.innerHTML;
-  btn.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px;margin:0 auto;"></div>';
-
-  fetch(API + '/send-message', {
+  fetch(API + '/instagram/send-message', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ to: to, message: message })
+    body: JSON.stringify({ recipient_id: selectedThreadId, message: text })
   })
     .then(function (res) {
       return res.json().then(function (data) {
@@ -432,22 +354,49 @@ function sendMessage() {
             (data.details && data.details.error && data.details.error.message) ||
             data.error ||
             'Send failed';
-          throw new Error(detail);
+          throw new Error(typeof detail === 'string' ? detail : JSON.stringify(detail));
         }
         return data;
       });
     })
     .then(function () {
-      setAlert('send-success', 'Message sent successfully! It should appear in the recipient\'s WhatsApp shortly.');
-      document.getElementById('send-msg').value = '';
-      var charCount = document.getElementById('char-count');
-      if (charCount) charCount.textContent = '0';
+      ta.value = '';
+      return refreshMessages();
     })
     .catch(function (err) {
-      setAlert('send-error', 'Failed to send: ' + (err.message || String(err)));
+      setInboxError(err.message || String(err));
     })
     .finally(function () {
-      btn.disabled = false;
-      btn.innerHTML = original;
+      updateComposerState();
     });
 }
+
+document.getElementById('thread-list').addEventListener('click', function (e) {
+  var btn = e.target.closest('[data-thread-id]');
+  if (!btn) return;
+  selectedThreadId = btn.getAttribute('data-thread-id');
+  renderInboxUi();
+});
+
+document.getElementById('reply-send').addEventListener('click', sendReply);
+
+document.getElementById('reply-input').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    sendReply();
+  }
+});
+
+document.querySelectorAll('[data-next-step]').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    showStep(Number(btn.getAttribute('data-next-step')));
+  });
+});
+
+document.querySelectorAll('[data-prev-step]').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    showStep(Number(btn.getAttribute('data-prev-step')));
+  });
+});
+
+showStep(1);
