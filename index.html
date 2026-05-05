@@ -10,12 +10,9 @@
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
-  <div class="min-bg"></div>
-
   <div class="layout">
     <main class="panel">
-
-      <header class="hdr">
+      <header class="hdr app-header">
         <div class="hdr-title">
           <h1 class="hdr-logo">Responza</h1>
           <p class="hdr-sub">Instagram messaging</p>
@@ -23,9 +20,11 @@
         <span class="hdr-step" id="flow-progress" aria-live="polite">1 / 5</span>
       </header>
 
-      <div class="bar" id="progress-bar" role="progressbar" aria-valuemin="1" aria-valuemax="5" aria-valuenow="1" aria-labelledby="flow-progress">
+      <div class="bar app-bar" id="progress-bar" role="progressbar" aria-valuemin="1" aria-valuemax="5" aria-valuenow="1" aria-labelledby="flow-progress">
         <div class="bar-fill" id="track-fill"></div>
       </div>
+
+      <div class="flow-mount">
 
       <section class="flow-step is-active" id="step-1" data-step="1">
         <h2 class="step-heading">Connect</h2>
@@ -68,35 +67,40 @@
         </div>
       </section>
 
-      <section class="flow-step" id="step-4" data-step="4">
-        <h2 class="step-heading">Your inbox</h2>
-        <p class="step-copy">Your connected professional account’s DMs. Each row is someone who wrote to you; you reply as your account (Instagram’s 24‑hour reply window applies).</p>
-        <p class="inbox-signed-in" id="inbox-signed-in" hidden>
-          Replying as <strong id="inbox-business-handle">—</strong>
-        </p>
-        <div class="inbox-bar">
-          <button class="btn-line btn-sm" type="button" onclick="refreshMessages()">Refresh</button>
-        </div>
-        <div class="inbox-split">
-          <div class="inbox-sidebar">
-            <p class="inbox-section-label">Who messaged you</p>
-            <div id="thread-list" class="thread-list" aria-label="People who messaged your account"></div>
+      <section class="flow-step flow-step-inbox" id="step-4" data-step="4">
+        <h2 class="sr-only">Your inbox</h2>
+        <div class="inbox-shell">
+          <aside class="inbox-rail" aria-label="People who messaged your account">
+            <div class="inbox-rail-head">
+              <h3 class="inbox-rail-title">Conversations</h3>
+              <p class="inbox-rail-account" id="inbox-signed-in" hidden>
+                You · <strong id="inbox-business-handle">—</strong>
+              </p>
+              <p class="inbox-rail-hint">24h reply window · Instagram rules</p>
+            </div>
+            <div id="thread-list" class="thread-list"></div>
+          </aside>
+
+          <div class="inbox-main">
+            <header class="inbox-main-toolbar">
+              <div id="inbox-chat-header" class="inbox-chat-header"></div>
+              <button class="btn-line btn-sm inbox-refresh" type="button" onclick="refreshMessages()" title="Refresh">Refresh</button>
+            </header>
+            <div id="chat-stream" class="chat-stream"></div>
+            <footer class="inbox-compose">
+              <div class="inbox-compose-row">
+                <label class="sr-only" for="reply-input">Reply as your account</label>
+                <textarea id="reply-input" class="reply-input" rows="1" maxlength="1000" placeholder="Select a conversation…" disabled></textarea>
+                <button type="button" id="reply-send" class="btn-solid btn-send-reply" disabled>Send</button>
+              </div>
+            </footer>
           </div>
-          <div class="inbox-pane">
-            <div id="inbox-chat-header" class="inbox-chat-header" aria-live="polite"></div>
-            <div id="chat-stream" class="chat-stream" aria-live="polite"></div>
-          </div>
+          <footer class="inbox-bottom-acts">
+            <button class="btn-line" type="button" data-prev-step="3">Back</button>
+            <button type="button" data-next-step="5" class="btn-line">Data &amp; permissions</button>
+          </footer>
         </div>
-        <div class="compose">
-          <label class="sr-only" for="reply-input">Reply as your account</label>
-          <textarea id="reply-input" class="reply-input" rows="2" maxlength="1000" placeholder="Select a conversation…" disabled></textarea>
-          <button type="button" id="reply-send" class="btn-solid btn-send-reply" disabled>Send as you</button>
-        </div>
-        <p class="err" id="inbox-error" hidden></p>
-        <div class="acts">
-          <button class="btn-line" type="button" data-prev-step="3">Back</button>
-          <button type="button" data-next-step="5" class="btn-solid">Continue</button>
-        </div>
+        <p class="err inbox-page-err" id="inbox-error" hidden></p>
       </section>
 
       <section class="flow-step" id="step-5" data-step="5">
@@ -115,6 +119,8 @@
           <button class="btn-line" type="button" data-prev-step="4">Back</button>
         </div>
       </section>
+
+      </div>
 
     </main>
   </div>

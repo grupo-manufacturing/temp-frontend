@@ -8,8 +8,18 @@ let currentStep = 1;
 const TOTAL_STEPS = 5;
 
 let inboxRows = [];
+/** threadUserId (IGSID) -> { username, name } | null — from GET /messages */
+let threadProfiles = {};
 let selectedThreadId = null;
 let businessIgUsername = '';
+
+function participantUsername(tid) {
+  var p = threadProfiles[tid];
+  if (p && typeof p.username === 'string' && p.username.trim()) {
+    return p.username.trim();
+  }
+  return '';
+}
 
 function safeText(value) {
   return String(value == null ? '' : value).replace(/</g, '&lt;');
@@ -107,7 +117,7 @@ function updateComposerState() {
   var who = businessIgUsername ? '@' + businessIgUsername : 'your account';
   if (ta) {
     ta.disabled = !ok;
-    ta.placeholder = ok ? 'Message as ' + who + '…' : 'Pick someone from the list…';
+    ta.placeholder = ok ? 'Message as ' + who + '…' : 'Select a conversation…';
   }
   if (btn) btn.disabled = !ok;
 }
@@ -159,16 +169,28 @@ function renderInboxUi() {
       var lastText = msgs.length ? msgs[msgs.length - 1].text : '';
       var prev = truncate(lastText, 48);
       var active = tid === selectedThreadId ? ' is-active' : '';
+      var uname = participantUsername(tid);
+      var kicker = uname ? 'Direct message' : 'Instagram ID';
+      var nameClass = 'thread-pick-name' + (uname ? '' : ' thread-pick-name--id');
+      var nameLine = uname ? '@' + safeText(uname) : safeText(shortId(tid));
+      var idRow = uname
+        ? '<span class="thread-pick-id">' + safeText(shortId(tid)) + '</span>'
+        : '';
       return (
         '<button type="button" class="thread-pick' +
         active +
         '" data-thread-id="' +
         escapeHtmlAttr(tid) +
         '">' +
-        '<span class="thread-pick-kicker">Their Instagram id</span>' +
-        '<span class="thread-pick-id">' +
-        safeText(shortId(tid)) +
+        '<span class="thread-pick-kicker">' +
+        safeText(kicker) +
         '</span>' +
+        '<span class="' +
+        nameClass +
+        '">' +
+        nameLine +
+        '</span>' +
+        idRow +
         '<span class="thread-pick-preview">' +
         safeText(prev || '(no text)') +
         '</span></button>'
@@ -177,13 +199,32 @@ function renderInboxUi() {
     .join('');
 
   if (headerEl && selectedThreadId) {
-    headerEl.innerHTML =
-      '<div class="inbox-chat-title">Conversation with this contact</div>' +
-      '<div class="inbox-chat-sub">ID <code>' +
-      safeText(shortId(selectedThreadId)) +
-      '</code> · They messaged <strong>' +
-      safeText(businessIgUsername ? '@' + businessIgUsername : 'your account') +
-      '</strong></div>';
+    var hu = participantUsername(selectedThreadId);
+    var biz = businessIgUsername ? '@' + businessIgUsername : 'your account';
+    if (hu) {
+      var prof = threadProfiles[selectedThreadId];
+      var rn = prof && typeof prof.name === 'string' && prof.name.trim() ? prof.name.trim() : '';
+      var nameBit = rn ? safeText(rn) + ' · ' : '';
+      headerEl.innerHTML =
+        '<div class="inbox-chat-title">' +
+        safeText('@' + hu) +
+        '</div>' +
+        '<div class="inbox-chat-sub">' +
+        nameBit +
+        '<span class="inbox-chat-meta">ID <code>' +
+        safeText(shortId(selectedThreadId)) +
+        '</code></span> · Messaged <strong>' +
+        safeText(biz) +
+        '</strong></div>';
+    } else {
+      headerEl.innerHTML =
+        '<div class="inbox-chat-title">Conversation</div>' +
+        '<div class="inbox-chat-sub">ID <code>' +
+        safeText(shortId(selectedThreadId)) +
+        '</code> · They messaged <strong>' +
+        safeText(biz) +
+        '</strong></div>';
+    }
   }
 
   var stream = selectedThreadId && by[selectedThreadId] ? by[selectedThreadId] : [];
@@ -247,6 +288,7 @@ function showStep(step) {
     node.classList.toggle('is-active', isActive);
   });
   updateFlowProgress(currentStep);
+  document.body.classList.toggle('inbox-step', currentStep === 4);
 
   if (currentStep === 4 && isInstagramConnected) {
     refreshMessages();
@@ -364,8 +406,16 @@ function refreshMessages() {
     })
     .then(function (data) {
       inboxRows = [];
-      if (!Array.isArray(data)) return;
-      data.forEach(function (raw) {
+      threadProfiles = {};
+      var list = data;
+      if (data && typeof data === 'object' && !Array.isArray(data)) {
+        if (data.profiles && typeof data.profiles === 'object') {
+          threadProfiles = data.profiles;
+        }
+        list = Array.isArray(data.messages) ? data.messages : [];
+      }
+      if (!Array.isArray(list)) return;
+      list.forEach(function (raw) {
         var n = normalizeMessage(raw);
         if (n) inboxRows.push(n);
       });
