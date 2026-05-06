@@ -105,12 +105,41 @@ function groupThreads(rows) {
 
 function setInstagramStatus(text) {
   var el = document.getElementById('instagram-status');
-  if (el) el.textContent = text;
+  if (el) {
+    // Rebuild with status dot preserved
+    var isConnected = isInstagramConnected;
+    var isWaiting = !isConnected && text && text.toLowerCase().indexOf('connect') !== -1;
+    var dotCls = isConnected ? 'status-dot--on' : isWaiting ? 'status-dot--wait' : 'status-dot--off';
+    el.innerHTML = '<span class="status-dot ' + dotCls + '" aria-hidden="true"></span>' + safeText(text);
+  }
+  // Update badge
+  var badge = document.getElementById('ig-badge');
+  if (badge) {
+    badge.textContent = isInstagramConnected ? 'Connected' : 'Not connected';
+    badge.classList.toggle('is-connected', isInstagramConnected);
+  }
+  // Update card border
+  var card = document.getElementById('ig-card');
+  if (card) card.classList.toggle('is-connected', isInstagramConnected);
 }
 
 function setWhatsappStatus(text) {
   var el = document.getElementById('whatsapp-status');
-  if (el) el.textContent = text;
+  if (el) {
+    var isConnected = isWhatsappConnected;
+    var isWaiting = !isConnected && text && text.toLowerCase().indexOf('connect') !== -1;
+    var dotCls = isConnected ? 'status-dot--on' : isWaiting ? 'status-dot--wait' : 'status-dot--off';
+    el.innerHTML = '<span class="status-dot ' + dotCls + '" aria-hidden="true"></span>' + safeText(text);
+  }
+  // Update badge
+  var badge = document.getElementById('wa-badge');
+  if (badge) {
+    badge.textContent = isWhatsappConnected ? 'Connected' : 'Not connected';
+    badge.classList.toggle('is-connected', isWhatsappConnected);
+  }
+  // Update card border
+  var card = document.getElementById('wa-card');
+  if (card) card.classList.toggle('is-connected', isWhatsappConnected);
 }
 
 function updateFlowProgress(step) {
@@ -124,6 +153,19 @@ function updateFlowProgress(step) {
   }
   var wrap = document.getElementById('progress-bar');
   if (wrap) wrap.setAttribute('aria-valuenow', String(step));
+  // Update dot indicators
+  for (var i = 1; i <= TOTAL_STEPS; i++) {
+    var dot = document.querySelector('[data-step-dot="' + i + '"]');
+    if (dot) {
+      dot.classList.remove('is-active', 'is-done');
+      if (i === step) dot.classList.add('is-active');
+      else if (i < step) dot.classList.add('is-done');
+    }
+    if (i < TOTAL_STEPS) {
+      var line = document.querySelector('[data-step-line="' + i + '"]');
+      if (line) line.classList.toggle('is-done', i < step);
+    }
+  }
 }
 
 function updateComposerState() {
