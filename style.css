@@ -196,18 +196,20 @@ body {
 .btn-send {
   flex-shrink: 0;
   align-self: flex-end;
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
+  padding: 0.45rem 0.95rem;
+  font-size: 0.8125rem;
+  line-height: 1.25;
   background: linear-gradient(135deg, #4f46e5, #6366f1);
   border: 1px solid transparent;
   color: #fff;
+  margin-bottom: 1px;
 }
 
 .btn-send:hover:not(:disabled) {
   filter: brightness(1.05);
 }
 
-.view--inbox[data-active-channel='whatsapp'] .btn-send {
+.view--inbox[data-active-channel='whatsapp'] .compose-shell .btn-send {
   background: linear-gradient(135deg, #16a34a, #22c55e);
 }
 
@@ -310,12 +312,21 @@ body {
 .inbox-top {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
   padding: 0.75rem 1rem;
   background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
   border-bottom: 1px solid var(--border);
   box-shadow: 0 1px 0 rgba(79, 70, 229, 0.06);
   flex-shrink: 0;
+}
+
+@media (max-width: 560px) {
+  .inbox-top-trail {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-start;
+  }
 }
 
 .link-back {
@@ -335,6 +346,74 @@ body {
 .inbox-top-title {
   font-weight: 600;
   font-size: 0.9375rem;
+}
+
+.inbox-top-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.inbox-top-trail {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.inbox-connect-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  max-width: min(520px, 100%);
+}
+
+.inbox-connect-actions .inbox-add-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-right: 0.125rem;
+}
+
+.inbox-connect-btn {
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.inbox-connect-btn:hover {
+  background: var(--bg);
+}
+
+.inbox-connect-btn--ig {
+  border-color: var(--ig-tint-border);
+  background: rgba(253, 242, 248, 0.5);
+}
+
+.inbox-connect-btn--ig:hover {
+  background: var(--ig-tint-bg);
+}
+
+.inbox-connect-btn--wa {
+  border-color: var(--wa-tint-border);
+  background: rgba(240, 253, 244, 0.6);
+}
+
+.inbox-connect-btn--wa:hover {
+  background: var(--wa-tint-bg);
 }
 
 .channel-switch {
@@ -544,35 +623,55 @@ body {
 }
 
 .inbox-compose {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
   padding: 0.75rem 1rem;
   border-top: 1px solid var(--border);
   background: var(--surface);
   flex-shrink: 0;
 }
 
-.reply-input {
-  width: 100%;
-  font-family: inherit;
-  font-size: 0.875rem;
-  padding: 0.5rem 0.65rem;
+.compose-shell {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.35rem;
+  padding: 0.35rem 0.35rem 0.35rem 0.65rem;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  resize: vertical;
-  min-height: 2.75rem;
-  max-height: 120px;
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--surface);
 }
 
-.reply-input:disabled {
-  background: var(--bg);
+.compose-shell:focus-within {
+  border-color: #a5b4fc;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+
+.view--inbox[data-active-channel='whatsapp'] .compose-shell:focus-within {
+  border-color: #86efac;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+}
+
+.inbox-compose .reply-input {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  font-family: inherit;
+  font-size: 0.875rem;
+  padding: 0.5rem 0.35rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  resize: none;
+  min-height: 2.4rem;
+  max-height: 120px;
+  line-height: 1.45;
+}
+
+.inbox-compose .reply-input:disabled {
+  background: transparent;
   color: var(--muted);
 }
 
-.reply-input:focus {
+.inbox-compose .reply-input:focus {
   outline: none;
-  border-color: var(--muted);
 }
 
 .empty-state {

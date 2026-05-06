@@ -20,6 +20,8 @@ let threadProfiles = {};
 let selectedThreadId = null;
 let instagramAccount = { igUserId: '—', igUsername: '—' };
 let whatsappAccount = { phoneNumberId: '—', wabaId: '—' };
+/** Where to navigate after IG / WhatsApp onboarding completes (`inbox` or `connected`). */
+let oauthLanding = 'connected';
 
 function participantUsername(tid) {
   var p = threadProfiles[tid];
@@ -125,6 +127,46 @@ function syncInboxChannelAttr() {
   if (inbox) inbox.setAttribute('data-active-channel', activeChannel);
 }
 
+function refreshInboxConnectActions() {
+  var wrap = document.getElementById('inbox-connect-actions');
+  if (!wrap) return;
+  if (currentView !== 'inbox') {
+    wrap.innerHTML = '';
+    wrap.hidden = true;
+    return;
+  }
+  var needIg = !isInstagramConnected;
+  var needWa = !isWhatsappConnected;
+  if (!needIg && !needWa) {
+    wrap.innerHTML = '';
+    wrap.hidden = true;
+    return;
+  }
+  var html = '<span class="inbox-add-label">Add channel</span>';
+  if (needIg) {
+    html +=
+      '<button type="button" class="inbox-connect-btn inbox-connect-btn--ig" data-connect="instagram">＋ Instagram</button>';
+  }
+  if (needWa) {
+    html +=
+      '<button type="button" class="inbox-connect-btn inbox-connect-btn--wa" data-connect="whatsapp">＋ WhatsApp</button>';
+  }
+  wrap.innerHTML = html;
+  wrap.hidden = false;
+}
+
+function resolveOAuthLanding() {
+  updateConnectedPanels();
+  var landing = oauthLanding;
+  oauthLanding = 'connected';
+  if (landing === 'inbox') {
+    showView('inbox');
+  } else {
+    showView('connected');
+    refreshMessages();
+  }
+}
+
 function showView(name) {
   currentView = name;
   var home = document.getElementById('view-home');
@@ -138,6 +180,7 @@ function showView(name) {
     updateInboxChannelSwitch();
     refreshMessages();
   }
+  refreshInboxConnectActions();
 }
 
 function leaveInbox() {
@@ -259,10 +302,10 @@ function renderInboxUi() {
   if (!isChannelConnected(activeChannel)) {
     selectedThreadId = null;
     listEl.innerHTML =
-      '<div class="empty-state">Connect this channel from the home screen to see conversations.</div>';
+      '<div class="empty-state">This channel is not linked yet. Use Add channel in the header, or go Home via Back.</div>';
     if (headerEl) headerEl.textContent = '';
     chatEl.innerHTML =
-      '<div class="empty-state"><p>Select a channel above or finish connecting.</p>' +
+      '<div class="empty-state"><p>Use Add channel in the header to link Instagram or WhatsApp without leaving Inbox.</p>' +
       '<button type="button" class="btn btn-block" style="margin-top:0.75rem;max-width:200px;">Back to home</button></div>';
     var backBtn = chatEl.querySelector('button');
     if (backBtn) {
@@ -422,6 +465,17 @@ function initializeApp() {
     });
   }
 
+  var top = document.getElementById('inbox-top');
+  if (top) {
+    top.addEventListener('click', function (e) {
+      var addBtn = e.target.closest('[data-connect]');
+      if (!addBtn || !top.contains(addBtn)) return;
+      var p = addBtn.getAttribute('data-connect');
+      if (p === 'instagram') connectInstagram();
+      else if (p === 'whatsapp') connectWhatsapp();
+    });
+  }
+
   showView('home');
   updateConnectedPanels();
 }
@@ -507,7 +561,12 @@ window.addEventListener('message', function (event) {
     if (payload.status === 'success') {
       setInstagramConnected(payload.data || {});
     } else {
-      setError(payload.error || 'Authorization failed.');
+      var igErr = payload.error || 'Authorization failed.';
+      if (currentView === 'inbox') {
+        setInboxError(igErr);
+      } else {
+        setError(igErr);
+      }
       var igBtn = document.getElementById('connect-instagram-btn');
       if (igBtn && !isInstagramConnected) igBtn.textContent = 'Connect Instagram';
     }
@@ -524,13 +583,13 @@ function setInstagramConnected(info) {
 
   activeChannel = 'instagram';
   clearGlobalMessages();
-  showView('connected');
-  updateConnectedPanels();
   startMessagePolling();
-  refreshMessages();
+  resolveOAuthLanding();
 }
 
 function connectInstagram() {
+  oauthLanding = currentView === 'inbox' ? 'inbox' : 'connected';
+  setInboxError('');
   clearGlobalMessages();
   var igBtn = document.getElementById('connect-instagram-btn');
   var igLabel = igBtn ? igBtn.textContent : '';
@@ -544,7 +603,12 @@ function connectInstagram() {
 
   if (!popup) {
     if (igBtn && !isInstagramConnected) igBtn.textContent = igLabel || 'Connect Instagram';
-    setError('Pop-up blocked. Allow pop-ups and try again.');
+    var popMsg = 'Pop-up blocked. Allow pop-ups and try again.';
+    if (currentView === 'inbox') {
+      setInboxError(popMsg);
+    } else {
+      setError(popMsg);
+    }
     return;
   }
 
@@ -559,6 +623,8 @@ function connectInstagram() {
 }
 
 function connectWhatsapp() {
+  oauthLanding = currentView === 'inbox' ? 'inbox' : 'connected';
+  setInboxError('');
   clearGlobalMessages();
 
   ensureFacebookSdk()
@@ -596,14 +662,16 @@ function connectWhatsapp() {
       if (btn) btn.textContent = 'Reconnect WhatsApp';
 
       clearGlobalMessages();
-      showView('connected');
-      updateConnectedPanels();
-      updateInboxChannelSwitch();
       startMessagePolling();
-      refreshMessages();
+      resolveOAuthLanding();
     })
     .catch(function (err) {
-      setError(err.message || String(err));
+      var m = err.message || String(err);
+      if (currentView === 'inbox') {
+        setInboxError(m);
+      } else {
+        setError(m);
+      }
     });
 }
 

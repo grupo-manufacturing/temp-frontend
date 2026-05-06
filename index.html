@@ -68,10 +68,15 @@
 
     <!-- Inbox: conversations + chat -->
     <section id="view-inbox" class="view view--inbox" hidden data-active-channel="instagram" aria-label="Inbox">
-      <header class="inbox-top">
-        <button type="button" class="link-back" onclick="leaveInbox()">← Back</button>
-        <span class="inbox-top-title">Inbox</span>
-        <div id="inbox-channel-switch" class="channel-switch" hidden></div>
+      <header class="inbox-top" id="inbox-top">
+        <div class="inbox-top-left">
+          <button type="button" class="link-back" onclick="leaveInbox()">← Back</button>
+          <span class="inbox-top-title">Inbox</span>
+        </div>
+        <div class="inbox-top-trail">
+          <div id="inbox-connect-actions" class="inbox-connect-actions" hidden></div>
+          <div id="inbox-channel-switch" class="channel-switch" hidden></div>
+        </div>
       </header>
       <div class="inbox-split">
         <aside class="inbox-conversations" aria-label="Conversations">
@@ -81,9 +86,11 @@
           <div id="inbox-chat-header" class="inbox-chat-header"></div>
           <div id="chat-stream" class="chat-stream"></div>
           <footer class="inbox-compose">
-            <label class="sr-only" for="reply-input">Message</label>
-            <textarea id="reply-input" class="reply-input" rows="2" maxlength="1000" placeholder="Select a conversation…" disabled></textarea>
-            <button type="button" id="reply-send" class="btn btn-send" disabled>Send</button>
+            <div class="compose-shell">
+              <label class="sr-only" for="reply-input">Message</label>
+              <textarea id="reply-input" class="reply-input" rows="1" maxlength="1000" placeholder="Select a conversation…" disabled></textarea>
+              <button type="button" id="reply-send" class="btn btn-send" disabled>Send</button>
+            </div>
           </footer>
         </div>
       </div>
