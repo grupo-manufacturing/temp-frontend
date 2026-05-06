@@ -53,6 +53,33 @@ function truncate(str, max) {
   return t.slice(0, max - 1) + '…';
 }
 
+function formatTimeAgo(timestamp) {
+  if (!timestamp) return '';
+  var now = Date.now();
+  var diff = now - timestamp;
+  var minutes = Math.floor(diff / 60000);
+  var hours = Math.floor(diff / 3600000);
+  var days = Math.floor(diff / 86400000);
+  
+  if (days > 0) return days + 'd';
+  if (hours > 0) return hours + 'h';
+  if (minutes > 0) return minutes + 'm';
+  return 'now';
+}
+
+function formatMessageTime(timestamp) {
+  if (!timestamp) return '';
+  var date = new Date(timestamp);
+  var now = new Date();
+  var isToday = date.toDateString() === now.toDateString();
+  
+  if (isToday) {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } else {
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  }
+}
+
 function normalizeMessage(raw) {
   if (raw && typeof raw === 'object' && raw.threadUserId) {
     return {
@@ -154,15 +181,21 @@ function updateComposerState() {
   var btn = document.getElementById('reply-send');
   var ok = Boolean(selectedThreadId) && isChannelConnected(activeChannel);
   var who = activeChannel === 'instagram' && businessIgUsername ? '@' + businessIgUsername : 'your account';
+  
   if (ta) {
     ta.disabled = !ok;
     ta.placeholder = ok
-      ? 'Message as ' + who + '…'
+      ? 'Type a message…'
       : isChannelConnected(activeChannel)
-        ? 'Select a ' + activeChannel + ' conversation…'
+        ? 'Select a conversation…'
         : 'Connect ' + activeChannel + ' to send messages…';
   }
-  if (btn) btn.disabled = !ok;
+  
+  if (btn) {
+    btn.disabled = !ok;
+    // Update button styling based on active channel
+    btn.className = 'btn-send-reply' + (activeChannel === 'whatsapp' && ok ? ' whatsapp-style' : '');
+  }
 }
 
 function updateInboxChrome() {
@@ -301,16 +334,31 @@ function updateAccountDetails() {
   var value1 = document.getElementById('account-field-value-1');
   var value2 = document.getElementById('account-field-value-2');
   
-  if (isInstagramConnected) {
-    if (label1) label1.textContent = 'User ID';
-    if (label2) label2.textContent = 'Username';
-    if (value1) value1.textContent = instagramAccount.igUserId;
-    if (value2) value2.textContent = instagramAccount.igUsername;
+  // Debug logging
+  console.log('Updating account details:', {
+    isInstagramConnected: isInstagramConnected,
+    isWhatsappConnected: isWhatsappConnected,
+    instagramAccount: instagramAccount,
+    whatsappAccount: whatsappAccount
+  });
+  
+  // Show details for the most recently connected or both if both are connected
+  if (isWhatsappConnected && isInstagramConnected) {
+    // Show WhatsApp if both are connected (most recent setup)
+    if (label1) label1.textContent = 'Phone Number ID';
+    if (label2) label2.textContent = 'WABA ID';
+    if (value1) value1.textContent = whatsappAccount.phoneNumberId || '—';
+    if (value2) value2.textContent = whatsappAccount.wabaId || '—';
   } else if (isWhatsappConnected) {
     if (label1) label1.textContent = 'Phone Number ID';
     if (label2) label2.textContent = 'WABA ID';
-    if (value1) value1.textContent = whatsappAccount.phoneNumberId;
-    if (value2) value2.textContent = whatsappAccount.wabaId;
+    if (value1) value1.textContent = whatsappAccount.phoneNumberId || '—';
+    if (value2) value2.textContent = whatsappAccount.wabaId || '—';
+  } else if (isInstagramConnected) {
+    if (label1) label1.textContent = 'User ID';
+    if (label2) label2.textContent = 'Username';
+    if (value1) value1.textContent = instagramAccount.igUserId || '—';
+    if (value2) value2.textContent = instagramAccount.igUsername || '—';
   }
 }
 
@@ -362,78 +410,84 @@ function renderInboxUi() {
       var msgs = by[tid];
       var lastText = msgs.length ? msgs[msgs.length - 1].text : '';
       var prev = truncate(lastText, 48);
-      var active = tid === selectedThreadId ? ' is-active' : '';
+      var active = tid === selectedThreadId ? ' is-selected' : '';
+      var channelClass = activeChannel === 'whatsapp' ? ' channel-whatsapp' : '';
       var uname = participantUsername(tid);
-      var kicker = activeChannel === 'instagram' ? 'Direct message' : 'WhatsApp message';
-      var nameClass = 'thread-pick-name' + (uname ? '' : ' thread-pick-name--id');
-      var nameLine = uname ? '@' + safeText(uname) : activeChannel === 'instagram' ? 'Instagram user' : 'WhatsApp user';
+      var nameLine = uname ? '@' + safeText(uname) : (activeChannel === 'instagram' ? 'Instagram User' : 'WhatsApp User');
+      var avatarText = uname ? safeText(uname.charAt(0).toUpperCase()) : (activeChannel === 'instagram' ? 'IG' : 'WA');
+      var avatarClass = activeChannel === 'whatsapp' ? 'thread-avatar whatsapp-avatar' : 'thread-avatar';
+      var timeAgo = msgs.length ? formatTimeAgo(msgs[msgs.length - 1].at) : '';
+      
       return (
-        '<button type="button" class="thread-pick' +
-        active +
+        '<div class="thread-item' +
+        active + 
+        channelClass +
         '" data-thread-id="' +
         escapeHtmlAttr(tid) +
         '">' +
-        '<span class="thread-pick-kicker">' +
-        safeText(kicker) +
-        '</span>' +
-        '<span class="' +
-        nameClass +
-        '">' +
+        '<div class="' + avatarClass + '">' +
+        avatarText +
+        '</div>' +
+        '<div class="thread-content">' +
+        '<div class="thread-meta">' +
+        '<div class="thread-name">' +
         nameLine +
-        '</span>' +
-        '<span class="thread-pick-preview">' +
-        safeText(prev || '(no text)') +
-        '</span></button>'
+        '</div>' +
+        '<div class="thread-time">' +
+        safeText(timeAgo) +
+        '</div>' +
+        '</div>' +
+        '<div class="thread-preview">' +
+        safeText(prev || 'No messages yet') +
+        '</div>' +
+        '</div>' +
+        '</div>'
       );
     })
     .join('');
 
   if (headerEl && selectedThreadId) {
     var hu = participantUsername(selectedThreadId);
-    var biz = activeChannel === 'instagram' && businessIgUsername ? '@' + businessIgUsername : 'your account';
-    if (hu) {
-      var prof = threadProfiles[selectedThreadId];
-      var rn = prof && typeof prof.name === 'string' && prof.name.trim() ? prof.name.trim() : '';
-      var nameBit = rn ? safeText(rn) + ' · ' : '';
-      headerEl.innerHTML =
-        '<div class="inbox-chat-title">' +
-        safeText('@' + hu) +
-        '</div>' +
-        '<div class="inbox-chat-sub">' +
-        nameBit +
-        'Messaged <strong>' +
-        safeText(biz) +
-        '</strong></div>';
-    } else {
-      headerEl.innerHTML =
-        '<div class="inbox-chat-title">Conversation</div>' +
-        '<div class="inbox-chat-sub">Messaged <strong>' +
-        safeText(biz) +
-        '</strong></div>';
-    }
+    var nameLine = hu ? '@' + safeText(hu) : (activeChannel === 'instagram' ? 'Instagram User' : 'WhatsApp User');
+    var avatarText = hu ? safeText(hu.charAt(0).toUpperCase()) : (activeChannel === 'instagram' ? 'IG' : 'WA');
+    var statusText = 'Active on ' + (activeChannel === 'instagram' ? 'Instagram' : 'WhatsApp');
+    
+    headerEl.innerHTML =
+      '<div class="chat-header-avatar">' +
+      avatarText +
+      '</div>' +
+      '<div class="chat-header-info">' +
+      '<div class="chat-header-name">' +
+      nameLine +
+      '</div>' +
+      '<div class="chat-header-status">' +
+      statusText +
+      '</div>' +
+      '</div>';
+  } else if (headerEl) {
+    headerEl.innerHTML = '';
   }
 
   var stream = selectedThreadId && by[selectedThreadId] ? by[selectedThreadId] : [];
   if (!stream.length) {
-    chatEl.innerHTML = '<div class="chat-empty">No messages in this thread.</div>';
+    chatEl.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="1.5"/></svg></div><div class="empty-state-title">Start the conversation</div><div class="empty-state-desc">Send a message to begin chatting</div></div>';
   } else {
     chatEl.innerHTML = stream
       .map(function (msg) {
         var isOut = msg.direction === 'out';
-        var cls = isOut ? 'bubble bubble-out' : 'bubble bubble-in';
-        var role = isOut ? 'You' : 'Customer';
+        var channelClass = activeChannel === 'whatsapp' ? ' channel-whatsapp' : '';
+        var messageClass = 'chat-message chat-message--' + (isOut ? 'out' : 'in') + channelClass;
+        var timeFormatted = formatMessageTime(msg.at);
+        
         return (
-          '<div class="bubble-wrap bubble-wrap-' +
-          (isOut ? 'out' : 'in') +
-          '">' +
-          '<span class="bubble-label">' +
-          safeText(role) +
-          '</span>' +
-          '<div class="' +
-          cls +
-          '">' +
+          '<div class="' + messageClass + '">' +
+          '<div class="message-bubble">' +
           safeText(msg.text) +
-          '</div></div>'
+          '</div>' +
+          '<div class="message-time">' +
+          safeText(timeFormatted) +
+          '</div>' +
+          '</div>'
         );
       })
       .join('');
