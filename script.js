@@ -1,19 +1,25 @@
 const API = 'https://temp-backend-idyb.onrender.com';
 const INSTAGRAM_OAUTH_URL =
   'https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=1438252244655087&redirect_uri=https://temp-backend-idyb.onrender.com/auth/instagram/callback&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages';
+const META_APP_ID = '1339299584731362';
+const WHATSAPP_EMBEDDED_CONFIG_ID = '865515573285412';
+const GRAPH_API_VERSION = 'v25.0';
+const TENANT_ID = 'default';
 
 let poller = null;
 let isInstagramConnected = false;
+let isWhatsappConnected = false;
+let activeChannel = 'instagram';
 let currentStep = 1;
 const TOTAL_STEPS = 5;
+let facebookSdkReady = null;
+let latestWhatsappSignupSession = null;
 
 let inboxRows = [];
 /** threadUserId (IGSID) -> { username, name } | null — from GET /messages */
 let threadProfiles = {};
 let selectedThreadId = null;
 let businessIgUsername = '';
-let activeChannel = 'instagram';
-let isWhatsappConnected = false;
 
 function participantUsername(tid) {
   var p = threadProfiles[tid];
@@ -73,7 +79,7 @@ function normalizeMessage(raw) {
 function groupThreads(rows) {
   var by = {};
   rows.forEach(function (msg) {
-    if (msg.channel !== activeChannel) return;
+    if ((msg.channel || 'instagram') !== activeChannel) return;
     if (!by[msg.threadUserId]) by[msg.threadUserId] = [];
     by[msg.threadUserId].push(msg);
   });
@@ -148,7 +154,7 @@ function updateInboxChrome() {
     hint.textContent =
       activeChannel === 'instagram'
         ? '24h reply window · Instagram rules'
-        : '24h reply window · WhatsApp session rules';
+        : '24h service window · WhatsApp rules';
   }
 }
 
@@ -165,16 +171,10 @@ function renderInboxUi() {
   var by = grouped.by;
 
   if (!order.length) {
-    listEl.innerHTML =
-      '<p class="thread-list-muted">No ' +
-      safeText(activeChannel) +
-      ' conversations yet.</p>';
+    listEl.innerHTML = '<p class="thread-list-muted">No conversations for this channel yet.</p>';
     selectedThreadId = null;
     if (headerEl) headerEl.innerHTML = '';
-    chatEl.innerHTML =
-      '<div class="chat-empty">When someone messages you on ' +
-      safeText(activeChannel) +
-      ', their thread appears here.</div>';
+    chatEl.innerHTML = '<div class="chat-empty">When someone messages this channel, their thread appears in the list.</div>';
     updateComposerState();
     return;
   }
@@ -285,8 +285,8 @@ function setInboxError(msg) {
 
 function showStep(step) {
   var safeStep = Math.max(1, Math.min(TOTAL_STEPS, step));
-  var connectedForActiveChannel = activeChannel === 'whatsapp' ? isWhatsappConnected : isInstagramConnected;
-  if (safeStep >= 4 && !connectedForActiveChannel) {
+  var connected = activeChannel === 'whatsapp' ? isWhatsappConnected : isInstagramConnected;
+  if (safeStep >= 4 && !connected) {
     currentStep = 1;
   } else {
     currentStep = safeStep;
@@ -303,7 +303,7 @@ function showStep(step) {
   updateFlowProgress(currentStep);
   document.body.classList.toggle('inbox-step', currentStep === 4);
 
-  if (currentStep === 4 && isInstagramConnected) {
+  if (currentStep === 4 && (isInstagramConnected || isWhatsappConnected)) {
     refreshMessages();
   }
 }
@@ -335,7 +335,65 @@ function clearGlobalMessages() {
   setError('');
 }
 
+function ensureFacebookSdk() {
+  if (window.FB) return Promise.resolve(window.FB);
+  if (facebookSdkReady) return facebookSdkReady;
+  facebookSdkReady = new Promise(function (resolve, reject) {
+    window.fbAsyncInit = function () {
+      window.FB.init({
+        appId: META_APP_ID,
+        autoLogAppEvents: true,
+        xfbml: true,
+        version: GRAPH_API_VERSION
+      });
+      resolve(window.FB);
+    };
+    var script = document.createElement('script');
+    script.async = true;
+    script.defer = true;
+    script.crossOrigin = 'anonymous';
+    script.src = 'https://connect.facebook.net/en_US/sdk.js';
+    script.onerror = function () {
+      reject(new Error('Failed to load Facebook SDK'));
+    };
+    document.head.appendChild(script);
+  });
+  return facebookSdkReady;
+}
+
+function completeWhatsappSignup(code) {
+  return fetch(API + '/whatsapp/embedded-signup/complete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      tenant_id: TENANT_ID,
+      code: code,
+      session_info: latestWhatsappSignupSession || {}
+    })
+  }).then(function (res) {
+    return res.json().then(function (data) {
+      if (!res.ok) {
+        throw new Error((data && data.error) || 'WhatsApp onboarding failed');
+      }
+      return data;
+    });
+  });
+}
+
 window.addEventListener('message', function (event) {
+  if (event.origin && !String(event.origin).endsWith('facebook.com')) {
+    // ignore non-Meta session messages here; Instagram callback uses a direct postMessage payload below
+  } else {
+    try {
+      var wa = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+      if (wa && wa.type === 'WA_EMBEDDED_SIGNUP') {
+        latestWhatsappSignupSession = wa.data || null;
+      }
+    } catch (_) {
+      /* ignore parse errors from unrelated sdk messages */
+    }
+  }
+
   var payload = typeof event.data === 'object' ? event.data : null;
   if (payload && payload.type === 'INSTAGRAM_BUSINESS_LOGIN') {
     if (payload.status === 'success') {
@@ -397,30 +455,38 @@ function connectInstagram() {
 function connectWhatsapp() {
   clearGlobalMessages();
   setWhatsappStatus('Connecting…');
-
-  fetch(API + '/whatsapp/state')
-    .then(function (res) {
-      return res.json().then(function (data) {
-        if (!res.ok) {
-          throw new Error((data && data.error) || 'Unable to check WhatsApp state');
-        }
-        return data;
+  ensureFacebookSdk()
+    .then(function (FB) {
+      return new Promise(function (resolve, reject) {
+        FB.login(
+          function (response) {
+            if (!response || !response.authResponse || !response.authResponse.code) {
+              reject(new Error('WhatsApp Embedded Signup canceled or failed'));
+              return;
+            }
+            resolve(response.authResponse.code);
+          },
+          {
+            config_id: WHATSAPP_EMBEDDED_CONFIG_ID,
+            response_type: 'code',
+            override_default_response_type: true,
+            extras: { setup: {} }
+          }
+        );
       });
     })
-    .then(function (state) {
-      if (!state || !state.connected) {
-        throw new Error(
-          'WhatsApp is not configured on backend yet. Set token/phone id and webhook, then retry.'
-        );
-      }
+    .then(function (code) {
+      return completeWhatsappSignup(code);
+    })
+    .then(function () {
       isWhatsappConnected = true;
       activeChannel = 'whatsapp';
+      setWhatsappStatus('Connected. Webhooks ready.');
+      var btn = document.getElementById('connect-whatsapp-btn');
+      if (btn) btn.textContent = 'Reconnect WhatsApp';
       document.querySelectorAll('[data-channel]').forEach(function (b) {
         b.classList.toggle('is-active', b.getAttribute('data-channel') === 'whatsapp');
       });
-      var btn = document.getElementById('connect-whatsapp-btn');
-      if (btn) btn.textContent = 'Reconnect WhatsApp';
-      setWhatsappStatus('Connected. Webhooks ready.');
       startMessagePolling();
       showStep(4);
       refreshMessages();
@@ -428,7 +494,6 @@ function connectWhatsapp() {
     .catch(function (err) {
       setWhatsappStatus('Not connected.');
       setError(err.message || String(err));
-      showStep(1);
     });
 }
 
@@ -438,13 +503,15 @@ function startMessagePolling() {
 }
 
 function refreshMessages() {
+  if (!isInstagramConnected && !isWhatsappConnected) return Promise.resolve();
+
   var listEl = document.getElementById('thread-list');
   var chatEl = document.getElementById('chat-stream');
   if (!listEl || !chatEl) return Promise.resolve();
 
   setInboxError('');
 
-  return fetch(API + '/messages')
+  return fetch(API + '/messages?tenant_id=' + encodeURIComponent(TENANT_ID) + '&channel=' + encodeURIComponent(activeChannel))
     .then(function (res) {
       return res.json().then(function (data) {
         if (!res.ok) {
@@ -494,9 +561,8 @@ function sendReply() {
   var isWhatsapp = activeChannel === 'whatsapp';
   var endpoint = isWhatsapp ? '/whatsapp/send-message' : '/instagram/send-message';
   var body = isWhatsapp
-    ? { to: selectedThreadId, message: text }
+    ? { tenant_id: TENANT_ID, to: selectedThreadId, message: text }
     : { recipient_id: selectedThreadId, message: text };
-
   fetch(API + endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -542,7 +608,7 @@ document.querySelectorAll('[data-channel]').forEach(function (btn) {
       b.classList.toggle('is-active', b === btn);
     });
     selectedThreadId = null;
-    renderInboxUi();
+    refreshMessages();
   });
 });
 
