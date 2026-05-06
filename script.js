@@ -10,8 +10,7 @@ let poller = null;
 let isInstagramConnected = false;
 let isWhatsappConnected = false;
 let activeChannel = 'instagram';
-let currentStep = 1;
-const TOTAL_STEPS = 5;
+let activeTab = 'home';
 let facebookSdkReady = null;
 let latestWhatsappSignupSession = null;
 
@@ -20,6 +19,8 @@ let inboxRows = [];
 let threadProfiles = {};
 let selectedThreadId = null;
 let businessIgUsername = '';
+let instagramAccount = { igUserId: '—', igUsername: '—' };
+let whatsappAccount = { phoneNumberId: '—', wabaId: '—' };
 
 function participantUsername(tid) {
   var p = threadProfiles[tid];
@@ -142,40 +143,24 @@ function setWhatsappStatus(text) {
   if (card) card.classList.toggle('is-connected', isWhatsappConnected);
 }
 
-function updateFlowProgress(step) {
-  var label = document.getElementById('flow-progress');
-  if (label) {
-    label.textContent = step + ' / ' + TOTAL_STEPS;
-  }
-  var bar = document.getElementById('track-fill');
-  if (bar) {
-    bar.style.width = ((step - 1) / (TOTAL_STEPS - 1) * 100) + '%';
-  }
-  var wrap = document.getElementById('progress-bar');
-  if (wrap) wrap.setAttribute('aria-valuenow', String(step));
-  // Update dot indicators
-  for (var i = 1; i <= TOTAL_STEPS; i++) {
-    var dot = document.querySelector('[data-step-dot="' + i + '"]');
-    if (dot) {
-      dot.classList.remove('is-active', 'is-done');
-      if (i === step) dot.classList.add('is-active');
-      else if (i < step) dot.classList.add('is-done');
-    }
-    if (i < TOTAL_STEPS) {
-      var line = document.querySelector('[data-step-line="' + i + '"]');
-      if (line) line.classList.toggle('is-done', i < step);
-    }
-  }
+
+function isChannelConnected(channel) {
+  return channel === 'whatsapp' ? isWhatsappConnected : isInstagramConnected;
 }
+
 
 function updateComposerState() {
   var ta = document.getElementById('reply-input');
   var btn = document.getElementById('reply-send');
-  var ok = Boolean(selectedThreadId);
+  var ok = Boolean(selectedThreadId) && isChannelConnected(activeChannel);
   var who = activeChannel === 'instagram' && businessIgUsername ? '@' + businessIgUsername : 'your account';
   if (ta) {
     ta.disabled = !ok;
-    ta.placeholder = ok ? 'Message as ' + who + '…' : 'Select a ' + activeChannel + ' conversation…';
+    ta.placeholder = ok
+      ? 'Message as ' + who + '…'
+      : isChannelConnected(activeChannel)
+        ? 'Select a ' + activeChannel + ' conversation…'
+        : 'Connect ' + activeChannel + ' to send messages…';
   }
   if (btn) btn.disabled = !ok;
 }
@@ -200,6 +185,135 @@ function updateInboxChrome() {
   }
 }
 
+// Tab Management
+function switchTab(tabName) {
+  if (activeTab === tabName) return;
+  
+  activeTab = tabName;
+  
+  // Update sidebar tabs
+  document.querySelectorAll('.sidebar-tab').forEach(tab => {
+    if (tab.dataset.tab === tabName) {
+      tab.classList.add('is-active');
+    } else {
+      tab.classList.remove('is-active');
+    }
+  });
+  
+  // Update tab content
+  document.querySelectorAll('.tab-content').forEach(content => {
+    if (content.dataset.tab === tabName) {
+      content.classList.add('is-active');
+    } else {
+      content.classList.remove('is-active');
+    }
+  });
+  
+  // Special handling for inbox tab
+  if (tabName === 'inbox') {
+    refreshMessages();
+    updateInboxChrome();
+  }
+  
+  // Update connection status displays
+  updateConnectionStatusDisplays();
+}
+
+function updateConnectionStatusDisplays() {
+  // Update home tab status
+  updateHomeTabStatus();
+  
+  // Update integration tab status  
+  updateIntegrationTabStatus();
+}
+
+function updateHomeTabStatus() {
+  var igStatusEl = document.getElementById('ig-status-home');
+  var waStatusEl = document.getElementById('wa-status-home');
+  
+  if (igStatusEl) {
+    var igBadge = igStatusEl.querySelector('.status-badge');
+    if (igBadge) {
+      if (isInstagramConnected) {
+        igBadge.textContent = 'Connected';
+        igBadge.className = 'status-badge status-badge--connected';
+      } else {
+        igBadge.textContent = 'Not connected';
+        igBadge.className = 'status-badge status-badge--disconnected';
+      }
+    }
+  }
+  
+  if (waStatusEl) {
+    var waBadge = waStatusEl.querySelector('.status-badge');
+    if (waBadge) {
+      if (isWhatsappConnected) {
+        waBadge.textContent = 'Connected';
+        waBadge.className = 'status-badge status-badge--connected';
+      } else {
+        waBadge.textContent = 'Not connected';
+        waBadge.className = 'status-badge status-badge--disconnected';
+      }
+    }
+  }
+}
+
+function updateIntegrationTabStatus() {
+  // Update platform badges in integration tab
+  var igBadge = document.getElementById('ig-badge');
+  var waBadge = document.getElementById('wa-badge');
+  
+  if (igBadge) {
+    if (isInstagramConnected) {
+      igBadge.textContent = 'Connected';
+      igBadge.className = 'platform-badge platform-badge--connected';
+    } else {
+      igBadge.textContent = 'Not connected';
+      igBadge.className = 'platform-badge';
+    }
+  }
+  
+  if (waBadge) {
+    if (isWhatsappConnected) {
+      waBadge.textContent = 'Connected';
+      waBadge.className = 'platform-badge platform-badge--connected';
+    } else {
+      waBadge.textContent = 'Not connected';
+      waBadge.className = 'platform-badge';
+    }
+  }
+  
+  // Show/hide account section
+  var accountSection = document.getElementById('account-section');
+  if (accountSection) {
+    if (isInstagramConnected || isWhatsappConnected) {
+      accountSection.removeAttribute('hidden');
+      updateAccountDetails();
+    } else {
+      accountSection.setAttribute('hidden', '');
+    }
+  }
+}
+
+function updateAccountDetails() {
+  var label1 = document.getElementById('account-field-label-1');
+  var label2 = document.getElementById('account-field-label-2');
+  var value1 = document.getElementById('account-field-value-1');
+  var value2 = document.getElementById('account-field-value-2');
+  
+  if (isInstagramConnected) {
+    if (label1) label1.textContent = 'User ID';
+    if (label2) label2.textContent = 'Username';
+    if (value1) value1.textContent = instagramAccount.igUserId;
+    if (value2) value2.textContent = instagramAccount.igUsername;
+  } else if (isWhatsappConnected) {
+    if (label1) label1.textContent = 'Phone Number ID';
+    if (label2) label2.textContent = 'WABA ID';
+    if (value1) value1.textContent = whatsappAccount.phoneNumberId;
+    if (value2) value2.textContent = whatsappAccount.wabaId;
+  }
+}
+
 function renderInboxUi() {
   var listEl = document.getElementById('thread-list');
   var chatEl = document.getElementById('chat-stream');
@@ -208,15 +322,30 @@ function renderInboxUi() {
 
   updateInboxChrome();
 
+  if (!isChannelConnected(activeChannel)) {
+    selectedThreadId = null;
+    listEl.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M8 2v3m8-3v3m-9 8h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v6a2 2 0 002 2z" stroke="currentColor" stroke-width="2"/></svg></div><div class="empty-state-title">Channel not connected</div></div>';
+    if (headerEl) headerEl.innerHTML = '';
+    chatEl.innerHTML =
+      '<div class="empty-state">' +
+      '<div class="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none"><path d="M8 2v3m8-3v3m-9 8h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v6a2 2 0 002 2z" stroke="currentColor" stroke-width="1.5"/></svg></div>' +
+      '<div class="empty-state-title">Connect ' + safeText(activeChannel === 'whatsapp' ? 'WhatsApp' : 'Instagram') + '</div>' +
+      '<div class="empty-state-desc">Connect your ' + safeText(activeChannel) + ' account to start messaging from this inbox.</div>' +
+      '<button type="button" class="connect-channel-btn" id="inbox-connect-channel" onclick="switchTab(\'integration\')">Go to Integration</button>' +
+      '</div>';
+    updateComposerState();
+    return;
+  }
+
   var grouped = groupThreads(inboxRows);
   var order = grouped.order;
   var by = grouped.by;
 
   if (!order.length) {
-    listEl.innerHTML = '<p class="thread-list-muted">No conversations for this channel yet.</p>';
+    listEl.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="1.5"/></svg></div><div class="empty-state-title">No conversations</div></div>';
     selectedThreadId = null;
     if (headerEl) headerEl.innerHTML = '';
-    chatEl.innerHTML = '<div class="chat-empty">When someone messages this channel, their thread appears in the list.</div>';
+    chatEl.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="1.5"/></svg></div><div class="empty-state-title">No conversations yet</div><div class="empty-state-desc">When someone messages your ' + safeText(activeChannel) + ' account, conversations will appear here.</div></div>';
     updateComposerState();
     return;
   }
@@ -325,28 +454,50 @@ function setInboxError(msg) {
   }
 }
 
-function showStep(step) {
-  var safeStep = Math.max(1, Math.min(TOTAL_STEPS, step));
-  var connected = activeChannel === 'whatsapp' ? isWhatsappConnected : isInstagramConnected;
-  if (safeStep >= 4 && !connected) {
-    currentStep = 1;
-  } else {
-    currentStep = safeStep;
-  }
-
-  if (currentStep === 1) {
-    setInstagramLoading(false);
-  }
-
-  document.querySelectorAll('.flow-step').forEach(function (node) {
-    var isActive = Number(node.getAttribute('data-step')) === currentStep;
-    node.classList.toggle('is-active', isActive);
+// Initialize app on page load
+function initializeApp() {
+  // Set up tab navigation
+  document.querySelectorAll('.sidebar-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      switchTab(this.dataset.tab);
+    });
   });
-  updateFlowProgress(currentStep);
-  document.body.classList.toggle('inbox-step', currentStep === 4);
+  
+  // Set up channel tabs in inbox
+  document.querySelectorAll('.channel-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      switchChannel(this.dataset.channel);
+    });
+  });
+  
+  // Initialize with home tab
+  switchTab('home');
+  
+  // Update initial connection status
+  updateConnectionStatusDisplays();
+}
 
-  if (currentStep === 4 && (isInstagramConnected || isWhatsappConnected)) {
-    refreshMessages();
+function switchChannel(channel) {
+  if (activeChannel === channel) return;
+  
+  activeChannel = channel;
+  
+  // Update channel tab UI
+  document.querySelectorAll('.channel-tab').forEach(tab => {
+    if (tab.dataset.channel === channel) {
+      tab.classList.add('is-active');
+      tab.setAttribute('aria-selected', 'true');
+    } else {
+      tab.classList.remove('is-active');
+      tab.setAttribute('aria-selected', 'false');
+    }
+  });
+  
+  // Refresh inbox for new channel
+  if (activeTab === 'inbox') {
+    renderInboxUi();
+    updateComposerState();
+    updateInboxChrome();
   }
 }
 
@@ -460,7 +611,6 @@ window.addEventListener('message', function (event) {
   if (payload && payload.type === 'INSTAGRAM_BUSINESS_LOGIN') {
     if (payload.status === 'success') {
       setInstagramConnected(payload.data || {});
-      showStep(3);
     } else {
       setInstagramLoading(false);
       setInstagramStatus('Not connected.');
@@ -473,20 +623,22 @@ window.addEventListener('message', function (event) {
 function setInstagramConnected(info) {
   isInstagramConnected = true;
   businessIgUsername = info.igUsername ? String(info.igUsername) : '';
-  document.getElementById('ig-user-id').textContent = info.igUserId || '—';
-  document.getElementById('ig-username').textContent = info.igUsername || '—';
+  instagramAccount.igUserId = info.igUserId || '—';
+  instagramAccount.igUsername = info.igUsername || '—';
   var btn = document.getElementById('connect-instagram-btn');
   if (btn) btn.textContent = 'Reconnect';
   setInstagramStatus('Connected. Webhooks ready.');
-  setInstagramLoading(false);
+  activeChannel = 'instagram';
+  // Account details will be updated by updateConnectionStatusDisplays
+  // Switch to integration tab to show account details
+  switchTab('integration');
+  updateConnectionStatusDisplays();
   refreshMessages();
   startMessagePolling();
 }
 
 function connectInstagram() {
   clearGlobalMessages();
-  showStep(2);
-  setInstagramLoading(true, 'Complete login in the popup…');
   setInstagramStatus('Connecting…');
 
   var popup = window.open(
@@ -496,10 +648,8 @@ function connectInstagram() {
   );
 
   if (!popup) {
-    setInstagramLoading(false);
     setInstagramStatus('Not connected.');
     setError('Pop-up blocked. Allow pop-ups and try again.');
-    showStep(1);
     return;
   }
 
@@ -507,7 +657,6 @@ function connectInstagram() {
     if (popup.closed) {
       clearInterval(watcher);
       if (!isInstagramConnected) {
-        setInstagramLoading(false);
         setInstagramStatus('Not connected.');
       }
     }
@@ -540,17 +689,24 @@ function connectWhatsapp() {
     .then(function (code) {
       return completeWhatsappSignup(code);
     })
-    .then(function () {
+    .then(function (result) {
       isWhatsappConnected = true;
+      whatsappAccount.phoneNumberId =
+        (result && result.whatsapp && result.whatsapp.phone_number_id) || '—';
+      whatsappAccount.wabaId = (result && result.whatsapp && result.whatsapp.waba_id) || '—';
       activeChannel = 'whatsapp';
       setWhatsappStatus('Connected. Webhooks ready.');
       var btn = document.getElementById('connect-whatsapp-btn');
       if (btn) btn.textContent = 'Reconnect WhatsApp';
-      document.querySelectorAll('[data-channel]').forEach(function (b) {
-        b.classList.toggle('is-active', b.getAttribute('data-channel') === 'whatsapp');
-      });
+      
+      // Switch to integration tab to show account details
+      switchTab('integration');
+      updateConnectionStatusDisplays();
+      
+      // Update channel selection
+      switchChannel('whatsapp');
+      
       startMessagePolling();
-      showStep(4);
       refreshMessages();
     })
     .catch(function (err) {
@@ -566,6 +722,11 @@ function startMessagePolling() {
 
 function refreshMessages() {
   if (!isInstagramConnected && !isWhatsappConnected) return Promise.resolve();
+  if (!isChannelConnected(activeChannel)) {
+    inboxRows = [];
+    renderInboxUi();
+    return Promise.resolve();
+  }
 
   var listEl = document.getElementById('thread-list');
   var chatEl = document.getElementById('chat-stream');
@@ -601,7 +762,7 @@ function refreshMessages() {
     })
     .catch(function (err) {
       var msg = err.message || String(err);
-      if (currentStep === 4) {
+      if (activeTab === 'inbox') {
         setInboxError(msg);
       } else {
         setError('Inbox: ' + msg);
@@ -661,6 +822,16 @@ document.getElementById('thread-list').addEventListener('click', function (e) {
   renderInboxUi();
 });
 
+document.getElementById('chat-stream').addEventListener('click', function (e) {
+  var btn = e.target.closest('#inbox-connect-channel');
+  if (!btn) return;
+  if (activeChannel === 'whatsapp') {
+    connectWhatsapp();
+  } else {
+    connectInstagram();
+  }
+});
+
 document.getElementById('reply-send').addEventListener('click', sendReply);
 
 document.querySelectorAll('[data-channel]').forEach(function (btn) {
@@ -670,6 +841,7 @@ document.querySelectorAll('[data-channel]').forEach(function (btn) {
       b.classList.toggle('is-active', b === btn);
     });
     selectedThreadId = null;
+    // Account details are handled automatically by updateConnectionStatusDisplays
     refreshMessages();
   });
 });
@@ -681,16 +853,5 @@ document.getElementById('reply-input').addEventListener('keydown', function (e) 
   }
 });
 
-document.querySelectorAll('[data-next-step]').forEach(function (btn) {
-  btn.addEventListener('click', function () {
-    showStep(Number(btn.getAttribute('data-next-step')));
-  });
-});
-
-document.querySelectorAll('[data-prev-step]').forEach(function (btn) {
-  btn.addEventListener('click', function () {
-    showStep(Number(btn.getAttribute('data-prev-step')));
-  });
-});
-
-showStep(1);
+// Initialize the application
+initializeApp();
