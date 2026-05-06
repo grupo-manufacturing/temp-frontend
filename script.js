@@ -201,7 +201,6 @@ function updateComposerState() {
 function updateInboxChrome() {
   var bar = document.getElementById('inbox-signed-in');
   var h = document.getElementById('inbox-business-handle');
-  var hint = document.getElementById('channel-hint');
   if (bar && h) {
     if (activeChannel === 'instagram' && businessIgUsername) {
       h.textContent = '@' + businessIgUsername;
@@ -209,12 +208,6 @@ function updateInboxChrome() {
     } else {
       bar.setAttribute('hidden', '');
     }
-  }
-  if (hint) {
-    hint.textContent =
-      activeChannel === 'instagram'
-        ? '24h reply window · Instagram rules'
-        : '24h service window · WhatsApp rules';
   }
 }
 
@@ -669,7 +662,6 @@ window.addEventListener('message', function (event) {
       setInstagramLoading(false);
       setInstagramStatus('Not connected.');
       setError(payload.error || 'Authorization failed.');
-      showStep(1);
     }
   }
 });
@@ -887,18 +879,6 @@ document.getElementById('chat-stream').addEventListener('click', function (e) {
 });
 
 document.getElementById('reply-send').addEventListener('click', sendReply);
-
-document.querySelectorAll('[data-channel]').forEach(function (btn) {
-  btn.addEventListener('click', function () {
-    activeChannel = btn.getAttribute('data-channel') === 'whatsapp' ? 'whatsapp' : 'instagram';
-    document.querySelectorAll('[data-channel]').forEach(function (b) {
-      b.classList.toggle('is-active', b === btn);
-    });
-    selectedThreadId = null;
-    // Account details are handled automatically by updateConnectionStatusDisplays
-    refreshMessages();
-  });
-});
 
 document.getElementById('reply-input').addEventListener('keydown', function (e) {
   if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
