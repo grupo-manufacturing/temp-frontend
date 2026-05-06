@@ -15,7 +15,7 @@
       <header class="hdr app-header">
         <div class="hdr-title">
           <h1 class="hdr-logo">Responza</h1>
-          <p class="hdr-sub">Instagram messaging</p>
+          <p class="hdr-sub">Instagram + WhatsApp messaging</p>
         </div>
         <span class="hdr-step" id="flow-progress" aria-live="polite">1 / 5</span>
       </header>
@@ -28,11 +28,17 @@
 
       <section class="flow-step is-active" id="step-1" data-step="1">
         <h2 class="step-heading">Connect</h2>
-        <p class="step-copy">Professional or Business account · OAuth opens in a popup</p>
-        <button id="connect-instagram-btn" type="button" onclick="connectInstagram()" class="btn-solid">
-          Connect Instagram
-        </button>
+        <p class="step-copy">Connect either Instagram or WhatsApp Business, then open inbox.</p>
+        <div class="acts">
+          <button id="connect-instagram-btn" type="button" onclick="connectInstagram()" class="btn-solid">
+            Connect Instagram
+          </button>
+          <button id="connect-whatsapp-btn" type="button" onclick="connectWhatsapp()" class="btn-solid">
+            Connect WhatsApp
+          </button>
+        </div>
         <p class="muted status-line" id="instagram-status">Not connected.</p>
+        <p class="muted status-line" id="whatsapp-status">Not connected.</p>
         <p class="err" id="global-error" hidden></p>
       </section>
 
@@ -73,10 +79,14 @@
           <aside class="inbox-rail" aria-label="People who messaged your account">
             <div class="inbox-rail-head">
               <h3 class="inbox-rail-title">Conversations</h3>
+              <div class="acts">
+                <button class="btn-line btn-sm is-active" type="button" id="channel-instagram-btn" data-channel="instagram">Instagram</button>
+                <button class="btn-line btn-sm" type="button" id="channel-whatsapp-btn" data-channel="whatsapp">WhatsApp</button>
+              </div>
               <p class="inbox-rail-account" id="inbox-signed-in" hidden>
                 You · <strong id="inbox-business-handle">—</strong>
               </p>
-              <p class="inbox-rail-hint">24h reply window · Instagram rules</p>
+              <p class="inbox-rail-hint" id="channel-hint">24h reply window · Instagram rules</p>
             </div>
             <div id="thread-list" class="thread-list"></div>
           </aside>
