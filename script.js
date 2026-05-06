@@ -23,6 +23,9 @@ let whatsappAccount = { phoneNumberId: '—', wabaId: '—' };
 /** Where to navigate after IG / WhatsApp onboarding completes (`inbox` or `connected`). */
 let oauthLanding = 'connected';
 
+/** No-op until `bindInboxPermissionsPopover()` runs — used to detach listeners when leaving Inbox */
+let closeInboxPermissionsPopover = function () {};
+
 function participantUsername(tid) {
   var p = threadProfiles[tid];
   if (p && typeof p.username === 'string' && p.username.trim()) {
@@ -208,6 +211,9 @@ function showView(name) {
     refreshMessages();
   }
   refreshInboxConnectActions();
+  if (name !== 'inbox') {
+    closeInboxPermissionsPopover();
+  }
 }
 
 function leaveInbox() {
@@ -496,8 +502,66 @@ function initializeApp() {
     });
   }
 
+  bindInboxPermissionsPopover();
+
   showView('home');
   updateConnectedPanels();
+}
+
+function bindInboxPermissionsPopover() {
+  var permBtn = document.getElementById('btn-inbox-permissions');
+  var permPanel = document.getElementById('panel-inbox-permissions');
+  if (!permBtn || !permPanel) return;
+
+  function detachGlobalClose() {
+    document.removeEventListener('mousedown', onOutside);
+    document.removeEventListener('keydown', onEscape);
+  }
+
+  function closePermPopover() {
+    permPanel.hidden = true;
+    permBtn.setAttribute('aria-expanded', 'false');
+    detachGlobalClose();
+  }
+
+  closeInboxPermissionsPopover = closePermPopover;
+
+  function onOutside(ev) {
+    if (permPanel.hidden) return;
+    if (permBtn.contains(ev.target) || permPanel.contains(ev.target)) return;
+    closePermPopover();
+  }
+
+  function onEscape(ev) {
+    if (permPanel.hidden) return;
+    if (ev.key === 'Escape') {
+      closePermPopover();
+      permBtn.focus();
+    }
+  }
+
+  function attachGlobalClose() {
+    detachGlobalClose();
+    setTimeout(function () {
+      document.addEventListener('mousedown', onOutside);
+      document.addEventListener('keydown', onEscape);
+    }, 0);
+  }
+
+  permBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (permPanel.hidden) {
+      permPanel.hidden = false;
+      permBtn.setAttribute('aria-expanded', 'true');
+      attachGlobalClose();
+    } else {
+      closePermPopover();
+    }
+  });
+
+  permPanel.addEventListener('mousedown', function (e) {
+    e.stopPropagation();
+  });
 }
 
 function ensureFacebookSdk() {
