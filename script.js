@@ -31,6 +31,33 @@ function participantUsername(tid) {
   return '';
 }
 
+function threadDisplayLabel(tid, channel) {
+  var label = participantUsername(tid);
+  if (!label) {
+    return channel === 'instagram' ? 'Instagram User' : 'WhatsApp User';
+  }
+  if (channel === 'instagram') {
+    return '@' + label;
+  }
+  return label;
+}
+
+function threadAvatarInitial(tid, channel) {
+  var label = participantUsername(tid);
+  if (!label) {
+    return channel === 'instagram' ? 'IG' : 'WA';
+  }
+  if (channel === 'whatsapp') {
+    var digitsOnly = /^[\d\s+().-]+$/.test(label.trim());
+    if (digitsOnly) {
+      var d = label.replace(/\D/g, '');
+      if (d.length >= 1) return d.slice(-1);
+    }
+    return String(label).charAt(0).toUpperCase();
+  }
+  return String(label).charAt(0).toUpperCase();
+}
+
 function safeText(value) {
   return String(value == null ? '' : value).replace(/</g, '&lt;');
 }
@@ -346,13 +373,8 @@ function renderInboxUi() {
       var prev = truncate(lastText, 48);
       var active = tid === selectedThreadId ? ' is-selected' : '';
       var channelClass = activeChannel === 'whatsapp' ? ' channel-whatsapp' : '';
-      var uname = participantUsername(tid);
-      var nameLine = uname
-        ? '@' + safeText(uname)
-        : activeChannel === 'instagram'
-          ? 'Instagram User'
-          : 'WhatsApp User';
-      var avatarText = uname ? safeText(uname.charAt(0).toUpperCase()) : activeChannel === 'instagram' ? 'IG' : 'WA';
+      var nameLine = safeText(threadDisplayLabel(tid, activeChannel));
+      var avatarText = safeText(threadAvatarInitial(tid, activeChannel));
       var timeAgo = msgs.length ? formatTimeAgo(msgs[msgs.length - 1].at) : '';
 
       return (
@@ -386,9 +408,7 @@ function renderInboxUi() {
     .join('');
 
   if (headerEl && selectedThreadId) {
-    var hu = participantUsername(selectedThreadId);
-    var display = hu ? '@' + hu : activeChannel === 'instagram' ? 'Instagram User' : 'WhatsApp User';
-    headerEl.textContent = display;
+    headerEl.textContent = threadDisplayLabel(selectedThreadId, activeChannel);
   } else if (headerEl) {
     headerEl.textContent = '';
   }
