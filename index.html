@@ -3,339 +3,92 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Responza — Instagram + WhatsApp</title>
+  <title>Responza</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
-  <div class="app-layout">
-    <!-- Header -->
-    <header class="app-header">
-      <div class="hdr-brand">
-        <div class="hdr-logo-mark" aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-            <rect x="1" y="1" width="20" height="20" rx="6" stroke="currentColor" stroke-width="1.5"/>
-            <circle cx="11" cy="11" r="4" stroke="currentColor" stroke-width="1.5"/>
-            <circle cx="16" cy="6" r="1.2" fill="currentColor"/>
-          </svg>
-        </div>
-        <div>
-          <h1 class="hdr-logo">Responza</h1>
-          <p class="hdr-sub">Instagram + WhatsApp messaging</p>
+  <div id="app">
+    <!-- Home: connect -->
+    <section id="view-home" class="view view--home panel-narrow" aria-label="Connect accounts">
+      <header class="view-head">
+        <h1 class="app-title">Responza</h1>
+        <p class="app-tagline">Instagram &amp; WhatsApp messaging</p>
+      </header>
+      <div class="stack gap-lg">
+        <button type="button" id="connect-instagram-btn" class="btn btn-block btn-connect btn-connect--ig" onclick="connectInstagram()">
+          Connect Instagram
+        </button>
+        <button type="button" id="connect-whatsapp-btn" class="btn btn-block btn-connect btn-connect--wa" onclick="connectWhatsapp()">
+          Connect WhatsApp
+        </button>
+      </div>
+      <p class="err" id="global-error" hidden></p>
+    </section>
+
+    <!-- After connection: account details -->
+    <section id="view-connected" class="view view--connected panel-narrow" hidden aria-label="Account details">
+      <header class="view-head">
+        <h1 class="view-title">Connected</h1>
+        <p class="view-sub">Your linked account details</p>
+      </header>
+
+      <div id="panel-instagram" class="info-panel info-panel--ig" hidden>
+        <h2 class="panel-title">Instagram</h2>
+        <dl class="kv">
+          <dt>User ID</dt>
+          <dd><code id="ig-value-user-id">—</code></dd>
+          <dt>Username</dt>
+          <dd><code id="ig-value-username">—</code></dd>
+        </dl>
+      </div>
+
+      <div id="panel-whatsapp" class="info-panel info-panel--wa" hidden>
+        <h2 class="panel-title">WhatsApp</h2>
+        <dl class="kv">
+          <dt>Phone number ID</dt>
+          <dd><code id="wa-value-phone-id">—</code></dd>
+          <dt>WABA ID</dt>
+          <dd><code id="wa-value-waba-id">—</code></dd>
+        </dl>
+      </div>
+
+      <div class="stack gap-sm">
+        <button type="button" id="btn-go-inbox" class="btn btn-primary btn-block" onclick="goToInbox()">
+          Go to Inbox
+        </button>
+        <button type="button" class="btn btn-ghost btn-block" onclick="showView('home')">
+          Back
+        </button>
+      </div>
+      <p class="err" id="global-error-connected" hidden></p>
+    </section>
+
+    <!-- Inbox: conversations + chat -->
+    <section id="view-inbox" class="view view--inbox" hidden data-active-channel="instagram" aria-label="Inbox">
+      <header class="inbox-top">
+        <button type="button" class="link-back" onclick="leaveInbox()">← Back</button>
+        <span class="inbox-top-title">Inbox</span>
+        <div id="inbox-channel-switch" class="channel-switch" hidden></div>
+      </header>
+      <div class="inbox-split">
+        <aside class="inbox-conversations" aria-label="Conversations">
+          <div id="thread-list" class="thread-list"></div>
+        </aside>
+        <div class="inbox-chat-col">
+          <div id="inbox-chat-header" class="inbox-chat-header"></div>
+          <div id="chat-stream" class="chat-stream"></div>
+          <footer class="inbox-compose">
+            <label class="sr-only" for="reply-input">Message</label>
+            <textarea id="reply-input" class="reply-input" rows="2" maxlength="1000" placeholder="Select a conversation…" disabled></textarea>
+            <button type="button" id="reply-send" class="btn btn-send" disabled>Send</button>
+          </footer>
         </div>
       </div>
-    </header>
-
-    <div class="app-body">
-      <!-- Sidebar -->
-      <nav class="app-sidebar" role="navigation" aria-label="Main navigation">
-        <div class="sidebar-tabs">
-          <button class="sidebar-tab is-active" data-tab="home" type="button">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M2 6l6-4 6 4v8a1 1 0 01-1 1H9v-5H7v5H3a1 1 0 01-1-1V6z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span>Home</span>
-          </button>
-          
-          <button class="sidebar-tab" data-tab="inbox" type="button">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M14 2H2a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1V3a1 1 0 00-1-1z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M1 5l7 4 7-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span>Inbox</span>
-          </button>
-          
-          <button class="sidebar-tab" data-tab="integration" type="button">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.5"/>
-              <path d="M8 1v6m0 2v6M13 8l-6 0m-2 0l-6 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
-            <span>Integration</span>
-          </button>
-        </div>
-      </nav>
-
-      <!-- Main Content -->
-      <main class="app-main">
-        <!-- Home Tab -->
-        <section class="tab-content is-active" id="home-tab" data-tab="home">
-          <div class="tab-inner">
-            <header class="tab-header">
-              <h2 class="tab-title">Welcome to Responza</h2>
-              <p class="tab-subtitle">Your unified messaging platform for Instagram and WhatsApp</p>
-            </header>
-
-            <div class="home-content">
-              <div class="feature-cards">
-                <div class="feature-card">
-                  <div class="feature-icon feature-icon--ig">
-                    <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
-                      <rect x="1" y="1" width="20" height="20" rx="6" fill="url(#igGradHome)" stroke="none"/>
-                      <circle cx="11" cy="11" r="4" stroke="white" stroke-width="1.6"/>
-                      <circle cx="16" cy="6" r="1.3" fill="white"/>
-                      <defs>
-                        <linearGradient id="igGradHome" x1="1" y1="21" x2="21" y2="1" gradientUnits="userSpaceOnUse">
-                          <stop stop-color="#f9ce34"/>
-                          <stop offset="0.35" stop-color="#ee2a7b"/>
-                          <stop offset="1" stop-color="#6228d7"/>
-                        </linearGradient>
-                      </defs>
-                    </svg>
-                  </div>
-                  <div class="feature-content">
-                    <h3 class="feature-title">Instagram Business</h3>
-                    <p class="feature-desc">Manage direct messages from your Instagram Business account with real-time messaging capabilities.</p>
-                  </div>
-                </div>
-
-                <div class="feature-card">
-                  <div class="feature-icon feature-icon--wa">
-                    <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
-                      <rect x="1" y="1" width="20" height="20" rx="6" fill="#25D366"/>
-                      <path d="M11 5.5a5.5 5.5 0 0 1 4.77 8.22l.73 2.28-2.35-.75A5.5 5.5 0 1 1 11 5.5Z" stroke="white" stroke-width="1.4" fill="none"/>
-                      <path d="M8.8 9.4c.1.2.55 1.05.6 1.13a.28.28 0 0 1 .02.26c-.05.1-.08.16-.16.25-.08.08-.16.18-.23.24-.08.07-.16.15-.07.3.1.15.43.7.92 1.13.63.56 1.16.73 1.33.81.17.08.27.07.37-.04l.26-.3c.1-.12.2-.1.34-.06.14.05.87.41 1.02.49.15.08.25.12.28.18.04.1.04.55-.16.82-.2.27-.64.56-1.12.57-.48.01-.9-.12-1.96-.55-1.46-.58-2.4-2.03-2.47-2.12-.07-.1-.57-.76-.57-1.45 0-.7.37-1.04.5-1.18.13-.14.28-.18.38-.18h.27c.09 0 .2-.02.3.25Z" fill="white"/>
-                    </svg>
-                  </div>
-                  <div class="feature-content">
-                    <h3 class="feature-title">WhatsApp Business</h3>
-                    <p class="feature-desc">Connect your WhatsApp Business account using Meta's Embedded Signup for seamless message management.</p>
-                  </div>
-                </div>
-              </div>
-
-              <div class="connection-status">
-                <h3 class="status-heading">Connection Status</h3>
-                <div class="status-list">
-                  <div class="status-item" id="ig-status-home">
-                    <div class="status-icon">
-                      <svg width="12" height="12" viewBox="0 0 22 22" fill="none">
-                        <rect x="1" y="1" width="20" height="20" rx="6" stroke="currentColor" stroke-width="2"/>
-                        <circle cx="11" cy="11" r="4" stroke="currentColor" stroke-width="2"/>
-                        <circle cx="16" cy="6" r="1.3" fill="currentColor"/>
-                      </svg>
-                    </div>
-                    <span class="status-label">Instagram</span>
-                    <span class="status-badge status-badge--disconnected">Not connected</span>
-                  </div>
-                  
-                  <div class="status-item" id="wa-status-home">
-                    <div class="status-icon">
-                      <svg width="12" height="12" viewBox="0 0 22 22" fill="none">
-                        <path d="M11 2.5a8.5 8.5 0 0 1 7.38 12.7l1.12 3.5-3.63-1.16A8.5 8.5 0 1 1 11 2.5Z" stroke="currentColor" stroke-width="2" fill="none"/>
-                      </svg>
-                    </div>
-                    <span class="status-label">WhatsApp</span>
-                    <span class="status-badge status-badge--disconnected">Not connected</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="info-block">
-                <div class="info-block-icon" aria-hidden="true">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.4"/>
-                    <path d="M8 7v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                    <circle cx="8" cy="5" r="0.8" fill="currentColor"/>
-                  </svg>
-                </div>
-                <p class="info-block-text">Get started by connecting your Instagram or WhatsApp Business accounts in the Integration tab.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Inbox Tab -->
-        <section class="tab-content" id="inbox-tab" data-tab="inbox">
-          <div class="inbox-shell">
-            <aside class="inbox-rail" aria-label="Conversations">
-              <div class="inbox-rail-head">
-                <div class="inbox-rail-title-row">
-                  <h3 class="inbox-rail-title">Conversations</h3>
-                  <p class="inbox-rail-account" id="inbox-signed-in" hidden>
-                    <span class="signed-in-dot" aria-hidden="true"></span>
-                    <strong id="inbox-business-handle">—</strong>
-                  </p>
-                </div>
-              </div>
-              <div id="thread-list" class="thread-list"></div>
-            </aside>
-
-            <div class="inbox-main">
-              <header class="inbox-main-toolbar">
-                <div id="inbox-chat-header" class="inbox-chat-header"></div>
-                <div class="inbox-toolbar-actions">
-                  <div class="channel-tabs channel-tabs--toolbar" role="tablist" aria-label="Inbox channel">
-                    <button class="channel-tab channel-tab--ig is-active" type="button" data-channel="instagram" role="tab" aria-selected="true">
-                      <svg width="12" height="12" viewBox="0 0 22 22" fill="none" aria-hidden="true">
-                        <rect x="1" y="1" width="20" height="20" rx="6" stroke="currentColor" stroke-width="2.2"/>
-                        <circle cx="11" cy="11" r="4" stroke="currentColor" stroke-width="2.2"/>
-                        <circle cx="16" cy="6" r="1.6" fill="currentColor"/>
-                      </svg>
-                      Instagram
-                    </button>
-                    <button class="channel-tab channel-tab--wa" type="button" data-channel="whatsapp" role="tab" aria-selected="false">
-                      <svg width="12" height="12" viewBox="0 0 22 22" fill="none" aria-hidden="true">
-                        <path d="M11 2.5a8.5 8.5 0 0 1 7.38 12.7l1.12 3.5-3.63-1.16A8.5 8.5 0 1 1 11 2.5Z" stroke="currentColor" stroke-width="2" fill="none"/>
-                      </svg>
-                      WhatsApp
-                    </button>
-                  </div>
-                  <button class="btn-ghost btn-sm inbox-refresh" type="button" onclick="refreshMessages()" title="Refresh messages">
-                    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                      <path d="M12 7A5 5 0 1 1 7 2a5 5 0 0 1 3.54 1.46L12 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                      <path d="M12 2v3h-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    Refresh
-                  </button>
-                </div>
-              </header>
-              <div id="chat-stream" class="chat-stream"></div>
-              <footer class="inbox-compose">
-                <div class="inbox-compose-row">
-                  <label class="sr-only" for="reply-input">Reply as your account</label>
-                  <textarea id="reply-input" class="reply-input" rows="1" maxlength="1000" placeholder="Select a conversation…" disabled></textarea>
-                  <button type="button" id="reply-send" class="btn-primary btn-send-reply" disabled>
-                    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M12.5 1.5 1.5 5.5l4 3 1.5 4.5 2-4 3.5 2 .5-9.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="none"/></svg>
-                    Send
-                  </button>
-                </div>
-                <p class="compose-hint">Press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> to send</p>
-              </footer>
-            </div>
-          </div>
-          <p class="err inbox-page-err" id="inbox-error" hidden></p>
-        </section>
-
-        <!-- Integration Tab -->
-        <section class="tab-content" id="integration-tab" data-tab="integration">
-          <div class="tab-inner">
-            <header class="tab-header">
-              <h2 class="tab-title">Connect Your Accounts</h2>
-              <p class="tab-subtitle">Link Instagram or WhatsApp to start managing messages from one place</p>
-            </header>
-
-            <div class="integration-content">
-              <div class="platform-cards">
-                <!-- Instagram card -->
-                <div class="platform-card" id="ig-card">
-                  <div class="platform-card-top">
-                    <div class="platform-icon platform-icon--ig" aria-hidden="true">
-                      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-                        <rect x="1" y="1" width="20" height="20" rx="6" fill="url(#igGrad)" stroke="none"/>
-                        <circle cx="11" cy="11" r="4" stroke="white" stroke-width="1.6"/>
-                        <circle cx="16" cy="6" r="1.3" fill="white"/>
-                        <defs>
-                          <linearGradient id="igGrad" x1="1" y1="21" x2="21" y2="1" gradientUnits="userSpaceOnUse">
-                            <stop stop-color="#f9ce34"/>
-                            <stop offset="0.35" stop-color="#ee2a7b"/>
-                            <stop offset="1" stop-color="#6228d7"/>
-                          </linearGradient>
-                        </defs>
-                      </svg>
-                    </div>
-                    <div class="platform-card-meta">
-                      <span class="platform-name">Instagram</span>
-                      <span class="platform-badge" id="ig-badge">Not connected</span>
-                    </div>
-                  </div>
-                  <p class="platform-desc">Receive and reply to Instagram DMs from your business account.</p>
-                  <button id="connect-instagram-btn" type="button" onclick="connectInstagram()" class="btn-platform btn-platform--ig">
-                    <span>Connect Instagram</span>
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                      <path d="M2.5 7h9M8 3.5 11.5 7 8 10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </button>
-                  <p class="status-line" id="instagram-status">
-                    <span class="status-dot status-dot--off" aria-hidden="true"></span>Not connected.
-                  </p>
-                </div>
-
-                <!-- WhatsApp card -->
-                <div class="platform-card" id="wa-card">
-                  <div class="platform-card-top">
-                    <div class="platform-icon platform-icon--wa" aria-hidden="true">
-                      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-                        <rect x="1" y="1" width="20" height="20" rx="6" fill="#25D366"/>
-                        <path d="M11 5.5a5.5 5.5 0 0 1 4.77 8.22l.73 2.28-2.35-.75A5.5 5.5 0 1 1 11 5.5Z" stroke="white" stroke-width="1.4" fill="none"/>
-                        <path d="M8.8 9.4c.1.2.55 1.05.6 1.13a.28.28 0 0 1 .02.26c-.05.1-.08.16-.16.25-.08.08-.16.18-.23.24-.08.07-.16.15-.07.3.1.15.43.7.92 1.13.63.56 1.16.73 1.33.81.17.08.27.07.37-.04l.26-.3c.1-.12.2-.1.34-.06.14.05.87.41 1.02.49.15.08.25.12.28.18.04.1.04.55-.16.82-.2.27-.64.56-1.12.57-.48.01-.9-.12-1.96-.55-1.46-.58-2.4-2.03-2.47-2.12-.07-.1-.57-.76-.57-1.45 0-.7.37-1.04.5-1.18.13-.14.28-.18.38-.18h.27c.09 0 .2-.02.3.25Z" fill="white"/>
-                      </svg>
-                    </div>
-                    <div class="platform-card-meta">
-                      <span class="platform-name">WhatsApp</span>
-                      <span class="platform-badge" id="wa-badge">Not connected</span>
-                    </div>
-                  </div>
-                  <p class="platform-desc">Manage WhatsApp Business messages through Meta Embedded Signup.</p>
-                  <button id="connect-whatsapp-btn" type="button" onclick="connectWhatsapp()" class="btn-platform btn-platform--wa">
-                    <span>Connect WhatsApp</span>
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                      <path d="M2.5 7h9M8 3.5 11.5 7 8 10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </button>
-                  <p class="status-line" id="whatsapp-status">
-                    <span class="status-dot status-dot--off" aria-hidden="true"></span>Not connected.
-                  </p>
-                </div>
-              </div>
-
-              <!-- Account Details (shown after connection) -->
-              <div class="account-section" id="account-section" hidden>
-                <h3 class="account-section-title">Connected Account</h3>
-                <div class="account-card">
-                  <div class="account-field">
-                    <span class="account-field-label" id="account-field-label-1">User ID</span>
-                    <code class="account-field-value" id="account-field-value-1">—</code>
-                  </div>
-                  <div class="account-field-divider"></div>
-                  <div class="account-field">
-                    <span class="account-field-label" id="account-field-label-2">Username</span>
-                    <code class="account-field-value" id="account-field-value-2">—</code>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Data & Permissions -->
-              <div class="permissions-section">
-                <h3 class="permissions-title">Data &amp; Permissions</h3>
-                <div class="info-block">
-                  <div class="info-block-icon" aria-hidden="true">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.4"/>
-                      <path d="M8 7v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                      <circle cx="8" cy="5" r="0.8" fill="currentColor"/>
-                    </svg>
-                  </div>
-                  <p class="info-block-text">Webhook payloads are buffered in memory for this demo inbox and are not persisted outside this session unless your deployment stores them.</p>
-                </div>
-
-                <div class="perm-list">
-                  <div class="perm-item">
-                    <code class="perm-name">instagram_business_manage_messages</code>
-                    <p class="perm-desc">Read DMs and receive webhook events from your Instagram business account.</p>
-                  </div>
-                  <div class="perm-item">
-                    <code class="perm-name">instagram_business_basic</code>
-                    <p class="perm-desc">Resolve and verify the authenticated Instagram account identity.</p>
-                  </div>
-                  <div class="perm-item">
-                    <code class="perm-name">whatsapp_business_management</code>
-                    <p class="perm-desc">Manage WhatsApp Business account assets and onboarding.</p>
-                  </div>
-                  <div class="perm-item">
-                    <code class="perm-name">whatsapp_business_messaging</code>
-                    <p class="perm-desc">Send and receive WhatsApp Business messages.</p>
-                  </div>
-                </div>
-              </div>
-
-              <p class="err step-err" id="global-error" hidden></p>
-            </div>
-          </div>
-        </section>
-      </main>
-    </div>
+      <p class="err inbox-err" id="inbox-error" hidden></p>
+    </section>
   </div>
 
   <script src="./script.js"></script>

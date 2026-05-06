@@ -10,7 +10,7 @@ let poller = null;
 let isInstagramConnected = false;
 let isWhatsappConnected = false;
 let activeChannel = 'instagram';
-let activeTab = 'home';
+let currentView = 'home';
 let facebookSdkReady = null;
 let latestWhatsappSignupSession = null;
 
@@ -18,7 +18,6 @@ let inboxRows = [];
 /** threadUserId (IGSID) -> { username, name } | null — from GET /messages */
 let threadProfiles = {};
 let selectedThreadId = null;
-let businessIgUsername = '';
 let instagramAccount = { igUserId: '—', igUsername: '—' };
 let whatsappAccount = { phoneNumberId: '—', wabaId: '—' };
 
@@ -41,12 +40,6 @@ function escapeHtmlAttr(value) {
     .replace(/</g, '&lt;');
 }
 
-function shortId(id) {
-  var s = String(id);
-  if (s.length <= 14) return s;
-  return s.slice(0, 6) + '…' + s.slice(-6);
-}
-
 function truncate(str, max) {
   var t = String(str || '').replace(/\s+/g, ' ').trim();
   if (t.length <= max) return t;
@@ -55,12 +48,10 @@ function truncate(str, max) {
 
 function formatTimeAgo(timestamp) {
   if (!timestamp) return '';
-  var now = Date.now();
-  var diff = now - timestamp;
+  var diff = Date.now() - timestamp;
   var minutes = Math.floor(diff / 60000);
   var hours = Math.floor(diff / 3600000);
   var days = Math.floor(diff / 86400000);
-  
   if (days > 0) return days + 'd';
   if (hours > 0) return hours + 'h';
   if (minutes > 0) return minutes + 'm';
@@ -72,12 +63,10 @@ function formatMessageTime(timestamp) {
   var date = new Date(timestamp);
   var now = new Date();
   var isToday = date.toDateString() === now.toDateString();
-  
   if (isToday) {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  } else {
-    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   }
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
 function normalizeMessage(raw) {
@@ -131,57 +120,111 @@ function groupThreads(rows) {
   return { by: by, order: ids };
 }
 
-function setInstagramStatus(text) {
-  var el = document.getElementById('instagram-status');
-  if (el) {
-    // Rebuild with status dot preserved
-    var isConnected = isInstagramConnected;
-    var isWaiting = !isConnected && text && text.toLowerCase().indexOf('connect') !== -1;
-    var dotCls = isConnected ? 'status-dot--on' : isWaiting ? 'status-dot--wait' : 'status-dot--off';
-    el.innerHTML = '<span class="status-dot ' + dotCls + '" aria-hidden="true"></span>' + safeText(text);
-  }
-  // Update badge
-  var badge = document.getElementById('ig-badge');
-  if (badge) {
-    badge.textContent = isInstagramConnected ? 'Connected' : 'Not connected';
-    badge.classList.toggle('is-connected', isInstagramConnected);
-  }
-  // Update card border
-  var card = document.getElementById('ig-card');
-  if (card) card.classList.toggle('is-connected', isInstagramConnected);
+function syncInboxChannelAttr() {
+  var inbox = document.getElementById('view-inbox');
+  if (inbox) inbox.setAttribute('data-active-channel', activeChannel);
 }
 
-function setWhatsappStatus(text) {
-  var el = document.getElementById('whatsapp-status');
-  if (el) {
-    var isConnected = isWhatsappConnected;
-    var isWaiting = !isConnected && text && text.toLowerCase().indexOf('connect') !== -1;
-    var dotCls = isConnected ? 'status-dot--on' : isWaiting ? 'status-dot--wait' : 'status-dot--off';
-    el.innerHTML = '<span class="status-dot ' + dotCls + '" aria-hidden="true"></span>' + safeText(text);
+function showView(name) {
+  currentView = name;
+  var home = document.getElementById('view-home');
+  var conn = document.getElementById('view-connected');
+  var inbox = document.getElementById('view-inbox');
+  if (home) home.hidden = name !== 'home';
+  if (conn) conn.hidden = name !== 'connected';
+  if (inbox) inbox.hidden = name !== 'inbox';
+  if (name === 'inbox') {
+    syncInboxChannelAttr();
+    updateInboxChannelSwitch();
+    refreshMessages();
   }
-  // Update badge
-  var badge = document.getElementById('wa-badge');
-  if (badge) {
-    badge.textContent = isWhatsappConnected ? 'Connected' : 'Not connected';
-    badge.classList.toggle('is-connected', isWhatsappConnected);
-  }
-  // Update card border
-  var card = document.getElementById('wa-card');
-  if (card) card.classList.toggle('is-connected', isWhatsappConnected);
 }
 
+function leaveInbox() {
+  setInboxError('');
+  if (isInstagramConnected || isWhatsappConnected) {
+    showView('connected');
+  } else {
+    showView('home');
+  }
+}
+
+function goToInbox() {
+  if (!isInstagramConnected && !isWhatsappConnected) return;
+  if (isInstagramConnected && !isWhatsappConnected) {
+    activeChannel = 'instagram';
+  } else if (!isInstagramConnected && isWhatsappConnected) {
+    activeChannel = 'whatsapp';
+  }
+  updateInboxChannelSwitch();
+  showView('inbox');
+}
+
+function updateConnectedPanels() {
+  var igPanel = document.getElementById('panel-instagram');
+  var waPanel = document.getElementById('panel-whatsapp');
+  var goBtn = document.getElementById('btn-go-inbox');
+
+  if (igPanel) {
+    if (isInstagramConnected) {
+      igPanel.hidden = false;
+      var uid = document.getElementById('ig-value-user-id');
+      var uname = document.getElementById('ig-value-username');
+      if (uid) uid.textContent = instagramAccount.igUserId || '—';
+      if (uname) uname.textContent = instagramAccount.igUsername || '—';
+    } else {
+      igPanel.hidden = true;
+    }
+  }
+
+  if (waPanel) {
+    if (isWhatsappConnected) {
+      waPanel.hidden = false;
+      var pid = document.getElementById('wa-value-phone-id');
+      var wid = document.getElementById('wa-value-waba-id');
+      if (pid) pid.textContent = whatsappAccount.phoneNumberId || '—';
+      if (wid) wid.textContent = whatsappAccount.wabaId || '—';
+    } else {
+      waPanel.hidden = true;
+    }
+  }
+
+  if (goBtn) {
+    goBtn.disabled = !isInstagramConnected && !isWhatsappConnected;
+  }
+}
+
+function updateInboxChannelSwitch() {
+  var wrap = document.getElementById('inbox-channel-switch');
+  if (!wrap) return;
+  var both = isInstagramConnected && isWhatsappConnected;
+  if (both) {
+    wrap.hidden = false;
+    wrap.innerHTML =
+      '<button type="button" data-channel="instagram" class="' +
+      (activeChannel === 'instagram' ? 'is-active' : '') +
+      '">Instagram</button>' +
+      '<button type="button" data-channel="whatsapp" class="' +
+      (activeChannel === 'whatsapp' ? 'is-active' : '') +
+      '">WhatsApp</button>';
+  } else {
+    wrap.hidden = true;
+    wrap.innerHTML = '';
+    if (isInstagramConnected) activeChannel = 'instagram';
+    else if (isWhatsappConnected) activeChannel = 'whatsapp';
+  }
+  if (currentView === 'inbox') syncInboxChannelAttr();
+}
 
 function isChannelConnected(channel) {
   return channel === 'whatsapp' ? isWhatsappConnected : isInstagramConnected;
 }
 
-
 function updateComposerState() {
   var ta = document.getElementById('reply-input');
   var btn = document.getElementById('reply-send');
   var ok = Boolean(selectedThreadId) && isChannelConnected(activeChannel);
-  var who = activeChannel === 'instagram' && businessIgUsername ? '@' + businessIgUsername : 'your account';
-  
+
   if (ta) {
     ta.disabled = !ok;
     ta.placeholder = ok
@@ -190,168 +233,20 @@ function updateComposerState() {
         ? 'Select a conversation…'
         : 'Connect ' + activeChannel + ' to send messages…';
   }
-  
+
   if (btn) {
     btn.disabled = !ok;
-    // Update button styling based on active channel
-    btn.className = 'btn-send-reply' + (activeChannel === 'whatsapp' && ok ? ' whatsapp-style' : '');
   }
 }
 
-function updateInboxChrome() {
-  var bar = document.getElementById('inbox-signed-in');
-  var h = document.getElementById('inbox-business-handle');
-  if (bar && h) {
-    if (activeChannel === 'instagram' && businessIgUsername) {
-      h.textContent = '@' + businessIgUsername;
-      bar.removeAttribute('hidden');
-    } else {
-      bar.setAttribute('hidden', '');
-    }
-  }
-}
-
-// Tab Management
-function switchTab(tabName) {
-  if (activeTab === tabName) return;
-  
-  activeTab = tabName;
-  
-  // Update sidebar tabs
-  document.querySelectorAll('.sidebar-tab').forEach(tab => {
-    if (tab.dataset.tab === tabName) {
-      tab.classList.add('is-active');
-    } else {
-      tab.classList.remove('is-active');
-    }
-  });
-  
-  // Update tab content
-  document.querySelectorAll('.tab-content').forEach(content => {
-    if (content.dataset.tab === tabName) {
-      content.classList.add('is-active');
-    } else {
-      content.classList.remove('is-active');
-    }
-  });
-  
-  // Special handling for inbox tab
-  if (tabName === 'inbox') {
+function switchChannel(channel) {
+  if (activeChannel === channel) return;
+  activeChannel = channel;
+  selectedThreadId = null;
+  syncInboxChannelAttr();
+  updateInboxChannelSwitch();
+  if (currentView === 'inbox') {
     refreshMessages();
-    updateInboxChrome();
-  }
-  
-  // Update connection status displays
-  updateConnectionStatusDisplays();
-}
-
-function updateConnectionStatusDisplays() {
-  // Update home tab status
-  updateHomeTabStatus();
-  
-  // Update integration tab status  
-  updateIntegrationTabStatus();
-}
-
-function updateHomeTabStatus() {
-  var igStatusEl = document.getElementById('ig-status-home');
-  var waStatusEl = document.getElementById('wa-status-home');
-  
-  if (igStatusEl) {
-    var igBadge = igStatusEl.querySelector('.status-badge');
-    if (igBadge) {
-      if (isInstagramConnected) {
-        igBadge.textContent = 'Connected';
-        igBadge.className = 'status-badge status-badge--connected';
-      } else {
-        igBadge.textContent = 'Not connected';
-        igBadge.className = 'status-badge status-badge--disconnected';
-      }
-    }
-  }
-  
-  if (waStatusEl) {
-    var waBadge = waStatusEl.querySelector('.status-badge');
-    if (waBadge) {
-      if (isWhatsappConnected) {
-        waBadge.textContent = 'Connected';
-        waBadge.className = 'status-badge status-badge--connected';
-      } else {
-        waBadge.textContent = 'Not connected';
-        waBadge.className = 'status-badge status-badge--disconnected';
-      }
-    }
-  }
-}
-
-function updateIntegrationTabStatus() {
-  // Update platform badges in integration tab
-  var igBadge = document.getElementById('ig-badge');
-  var waBadge = document.getElementById('wa-badge');
-  
-  if (igBadge) {
-    if (isInstagramConnected) {
-      igBadge.textContent = 'Connected';
-      igBadge.className = 'platform-badge platform-badge--connected';
-    } else {
-      igBadge.textContent = 'Not connected';
-      igBadge.className = 'platform-badge';
-    }
-  }
-  
-  if (waBadge) {
-    if (isWhatsappConnected) {
-      waBadge.textContent = 'Connected';
-      waBadge.className = 'platform-badge platform-badge--connected';
-    } else {
-      waBadge.textContent = 'Not connected';
-      waBadge.className = 'platform-badge';
-    }
-  }
-  
-  // Show/hide account section
-  var accountSection = document.getElementById('account-section');
-  if (accountSection) {
-    if (isInstagramConnected || isWhatsappConnected) {
-      accountSection.removeAttribute('hidden');
-      updateAccountDetails();
-    } else {
-      accountSection.setAttribute('hidden', '');
-    }
-  }
-}
-
-function updateAccountDetails() {
-  var label1 = document.getElementById('account-field-label-1');
-  var label2 = document.getElementById('account-field-label-2');
-  var value1 = document.getElementById('account-field-value-1');
-  var value2 = document.getElementById('account-field-value-2');
-  
-  // Debug logging
-  console.log('Updating account details:', {
-    isInstagramConnected: isInstagramConnected,
-    isWhatsappConnected: isWhatsappConnected,
-    instagramAccount: instagramAccount,
-    whatsappAccount: whatsappAccount
-  });
-  
-  // Show details for the most recently connected or both if both are connected
-  if (isWhatsappConnected && isInstagramConnected) {
-    // Show WhatsApp if both are connected (most recent setup)
-    if (label1) label1.textContent = 'Phone Number ID';
-    if (label2) label2.textContent = 'WABA ID';
-    if (value1) value1.textContent = whatsappAccount.phoneNumberId || '—';
-    if (value2) value2.textContent = whatsappAccount.wabaId || '—';
-  } else if (isWhatsappConnected) {
-    if (label1) label1.textContent = 'Phone Number ID';
-    if (label2) label2.textContent = 'WABA ID';
-    if (value1) value1.textContent = whatsappAccount.phoneNumberId || '—';
-    if (value2) value2.textContent = whatsappAccount.wabaId || '—';
-  } else if (isInstagramConnected) {
-    if (label1) label1.textContent = 'User ID';
-    if (label2) label2.textContent = 'Username';
-    if (value1) value1.textContent = instagramAccount.igUserId || '—';
-    if (value2) value2.textContent = instagramAccount.igUsername || '—';
   }
 }
 
@@ -361,19 +256,20 @@ function renderInboxUi() {
   var headerEl = document.getElementById('inbox-chat-header');
   if (!listEl || !chatEl) return;
 
-  updateInboxChrome();
-
   if (!isChannelConnected(activeChannel)) {
     selectedThreadId = null;
-    listEl.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M8 2v3m8-3v3m-9 8h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v6a2 2 0 002 2z" stroke="currentColor" stroke-width="2"/></svg></div><div class="empty-state-title">Channel not connected</div></div>';
-    if (headerEl) headerEl.innerHTML = '';
+    listEl.innerHTML =
+      '<div class="empty-state">Connect this channel from the home screen to see conversations.</div>';
+    if (headerEl) headerEl.textContent = '';
     chatEl.innerHTML =
-      '<div class="empty-state">' +
-      '<div class="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none"><path d="M8 2v3m8-3v3m-9 8h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v6a2 2 0 002 2z" stroke="currentColor" stroke-width="1.5"/></svg></div>' +
-      '<div class="empty-state-title">Connect ' + safeText(activeChannel === 'whatsapp' ? 'WhatsApp' : 'Instagram') + '</div>' +
-      '<div class="empty-state-desc">Connect your ' + safeText(activeChannel) + ' account to start messaging from this inbox.</div>' +
-      '<button type="button" class="connect-channel-btn" id="inbox-connect-channel" onclick="switchTab(\'integration\')">Go to Integration</button>' +
-      '</div>';
+      '<div class="empty-state"><p>Select a channel above or finish connecting.</p>' +
+      '<button type="button" class="btn btn-block" style="margin-top:0.75rem;max-width:200px;">Back to home</button></div>';
+    var backBtn = chatEl.querySelector('button');
+    if (backBtn) {
+      backBtn.addEventListener('click', function () {
+        showView('home');
+      });
+    }
     updateComposerState();
     return;
   }
@@ -383,10 +279,12 @@ function renderInboxUi() {
   var by = grouped.by;
 
   if (!order.length) {
-    listEl.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="1.5"/></svg></div><div class="empty-state-title">No conversations</div></div>';
+    listEl.innerHTML =
+      '<div class="empty-state">No conversations yet</div>';
     selectedThreadId = null;
-    if (headerEl) headerEl.innerHTML = '';
-    chatEl.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="1.5"/></svg></div><div class="empty-state-title">No conversations yet</div><div class="empty-state-desc">When someone messages your ' + safeText(activeChannel) + ' account, conversations will appear here.</div></div>';
+    if (headerEl) headerEl.textContent = '';
+    chatEl.innerHTML =
+      '<div class="empty-state">When someone messages you, threads will appear in the column on the left.</div>';
     updateComposerState();
     return;
   }
@@ -406,22 +304,26 @@ function renderInboxUi() {
       var active = tid === selectedThreadId ? ' is-selected' : '';
       var channelClass = activeChannel === 'whatsapp' ? ' channel-whatsapp' : '';
       var uname = participantUsername(tid);
-      var nameLine = uname ? '@' + safeText(uname) : (activeChannel === 'instagram' ? 'Instagram User' : 'WhatsApp User');
-      var avatarText = uname ? safeText(uname.charAt(0).toUpperCase()) : (activeChannel === 'instagram' ? 'IG' : 'WA');
-      var avatarClass = activeChannel === 'whatsapp' ? 'thread-avatar whatsapp-avatar' : 'thread-avatar';
+      var nameLine = uname
+        ? '@' + safeText(uname)
+        : activeChannel === 'instagram'
+          ? 'Instagram User'
+          : 'WhatsApp User';
+      var avatarText = uname ? safeText(uname.charAt(0).toUpperCase()) : activeChannel === 'instagram' ? 'IG' : 'WA';
       var timeAgo = msgs.length ? formatTimeAgo(msgs[msgs.length - 1].at) : '';
-      
+
       return (
         '<div class="thread-item' +
-        active + 
+        active +
         channelClass +
         '" data-thread-id="' +
         escapeHtmlAttr(tid) +
         '">' +
-        '<div class="' + avatarClass + '">' +
+        '<div class="thread-item-inner">' +
+        '<div class="thread-avatar">' +
         avatarText +
         '</div>' +
-        '<div class="thread-content">' +
+        '<div class="thread-body">' +
         '<div class="thread-meta">' +
         '<div class="thread-name">' +
         nameLine +
@@ -434,6 +336,7 @@ function renderInboxUi() {
         safeText(prev || 'No messages yet') +
         '</div>' +
         '</div>' +
+        '</div>' +
         '</div>'
       );
     })
@@ -441,39 +344,29 @@ function renderInboxUi() {
 
   if (headerEl && selectedThreadId) {
     var hu = participantUsername(selectedThreadId);
-    var nameLine = hu ? '@' + safeText(hu) : (activeChannel === 'instagram' ? 'Instagram User' : 'WhatsApp User');
-    var avatarText = hu ? safeText(hu.charAt(0).toUpperCase()) : (activeChannel === 'instagram' ? 'IG' : 'WA');
-    var statusText = 'Active on ' + (activeChannel === 'instagram' ? 'Instagram' : 'WhatsApp');
-    
-    headerEl.innerHTML =
-      '<div class="chat-header-avatar">' +
-      avatarText +
-      '</div>' +
-      '<div class="chat-header-info">' +
-      '<div class="chat-header-name">' +
-      nameLine +
-      '</div>' +
-      '<div class="chat-header-status">' +
-      statusText +
-      '</div>' +
-      '</div>';
+    var display = hu ? '@' + hu : activeChannel === 'instagram' ? 'Instagram User' : 'WhatsApp User';
+    headerEl.textContent = display;
   } else if (headerEl) {
-    headerEl.innerHTML = '';
+    headerEl.textContent = '';
   }
 
   var stream = selectedThreadId && by[selectedThreadId] ? by[selectedThreadId] : [];
   if (!stream.length) {
-    chatEl.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="1.5"/></svg></div><div class="empty-state-title">Start the conversation</div><div class="empty-state-desc">Send a message to begin chatting</div></div>';
+    chatEl.innerHTML =
+      '<div class="empty-state">No messages in this conversation yet.</div>';
   } else {
     chatEl.innerHTML = stream
       .map(function (msg) {
         var isOut = msg.direction === 'out';
         var channelClass = activeChannel === 'whatsapp' ? ' channel-whatsapp' : '';
-        var messageClass = 'chat-message chat-message--' + (isOut ? 'out' : 'in') + channelClass;
+        var messageClass =
+          'chat-message chat-message--' + (isOut ? 'out' : 'in') + channelClass;
         var timeFormatted = formatMessageTime(msg.at);
-        
+
         return (
-          '<div class="' + messageClass + '">' +
+          '<div class="' +
+          messageClass +
+          '">' +
           '<div class="message-bubble">' +
           safeText(msg.text) +
           '</div>' +
@@ -501,78 +394,36 @@ function setInboxError(msg) {
   }
 }
 
-// Initialize app on page load
-function initializeApp() {
-  // Set up tab navigation
-  document.querySelectorAll('.sidebar-tab').forEach(tab => {
-    tab.addEventListener('click', function() {
-      switchTab(this.dataset.tab);
-    });
-  });
-  
-  // Set up channel tabs in inbox
-  document.querySelectorAll('.channel-tab').forEach(tab => {
-    tab.addEventListener('click', function() {
-      switchChannel(this.dataset.channel);
-    });
-  });
-  
-  // Initialize with home tab
-  switchTab('home');
-  
-  // Update initial connection status
-  updateConnectionStatusDisplays();
-}
-
-function switchChannel(channel) {
-  if (activeChannel === channel) return;
-  
-  activeChannel = channel;
-  
-  // Update channel tab UI
-  document.querySelectorAll('.channel-tab').forEach(tab => {
-    if (tab.dataset.channel === channel) {
-      tab.classList.add('is-active');
-      tab.setAttribute('aria-selected', 'true');
+function setError(msg) {
+  ['global-error', 'global-error-connected'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (msg) {
+      el.textContent = msg;
+      el.removeAttribute('hidden');
     } else {
-      tab.classList.remove('is-active');
-      tab.setAttribute('aria-selected', 'false');
+      el.textContent = '';
+      el.setAttribute('hidden', '');
     }
   });
-  
-  // Refresh inbox for new channel
-  if (activeTab === 'inbox') {
-    renderInboxUi();
-    updateComposerState();
-    updateInboxChrome();
-  }
-}
-
-function setInstagramLoading(loading, text) {
-  var row = document.getElementById('instagram-loading');
-  var lbl = document.getElementById('instagram-loading-text');
-  if (!row) return;
-  if (lbl && text) lbl.textContent = text;
-  if (loading) {
-    row.removeAttribute('hidden');
-  } else {
-    row.setAttribute('hidden', '');
-  }
-}
-
-function setError(msg) {
-  var el = document.getElementById('global-error');
-  if (!el) return;
-  if (msg) {
-    el.textContent = msg;
-    el.removeAttribute('hidden');
-  } else {
-    el.setAttribute('hidden', '');
-  }
 }
 
 function clearGlobalMessages() {
   setError('');
+}
+
+function initializeApp() {
+  var wrap = document.getElementById('inbox-channel-switch');
+  if (wrap) {
+    wrap.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-channel]');
+      if (!btn || !wrap.contains(btn)) return;
+      switchChannel(btn.getAttribute('data-channel'));
+    });
+  }
+
+  showView('home');
+  updateConnectedPanels();
 }
 
 function ensureFacebookSdk() {
@@ -641,17 +492,14 @@ function completeWhatsappSignup(code) {
 }
 
 window.addEventListener('message', function (event) {
-  if (event.origin && !String(event.origin).endsWith('facebook.com')) {
-    // ignore non-Meta session messages here; Instagram callback uses a direct postMessage payload below
-  } else {
+  var allowWa = !event.origin || String(event.origin).endsWith('facebook.com');
+  if (allowWa) {
     try {
       var wa = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
       if (wa && wa.type === 'WA_EMBEDDED_SIGNUP') {
         latestWhatsappSignupSession = wa.data || null;
       }
-    } catch (_) {
-      /* ignore parse errors from unrelated sdk messages */
-    }
+    } catch (_) {}
   }
 
   var payload = typeof event.data === 'object' ? event.data : null;
@@ -659,33 +507,34 @@ window.addEventListener('message', function (event) {
     if (payload.status === 'success') {
       setInstagramConnected(payload.data || {});
     } else {
-      setInstagramLoading(false);
-      setInstagramStatus('Not connected.');
       setError(payload.error || 'Authorization failed.');
+      var igBtn = document.getElementById('connect-instagram-btn');
+      if (igBtn && !isInstagramConnected) igBtn.textContent = 'Connect Instagram';
     }
   }
 });
 
 function setInstagramConnected(info) {
   isInstagramConnected = true;
-  businessIgUsername = info.igUsername ? String(info.igUsername) : '';
   instagramAccount.igUserId = info.igUserId || '—';
   instagramAccount.igUsername = info.igUsername || '—';
+
   var btn = document.getElementById('connect-instagram-btn');
-  if (btn) btn.textContent = 'Reconnect';
-  setInstagramStatus('Connected. Webhooks ready.');
+  if (btn) btn.textContent = 'Reconnect Instagram';
+
   activeChannel = 'instagram';
-  // Account details will be updated by updateConnectionStatusDisplays
-  // Switch to integration tab to show account details
-  switchTab('integration');
-  updateConnectionStatusDisplays();
-  refreshMessages();
+  clearGlobalMessages();
+  showView('connected');
+  updateConnectedPanels();
   startMessagePolling();
+  refreshMessages();
 }
 
 function connectInstagram() {
   clearGlobalMessages();
-  setInstagramStatus('Connecting…');
+  var igBtn = document.getElementById('connect-instagram-btn');
+  var igLabel = igBtn ? igBtn.textContent : '';
+  if (igBtn && !isInstagramConnected) igBtn.textContent = 'Opening…';
 
   var popup = window.open(
     INSTAGRAM_OAUTH_URL,
@@ -694,7 +543,7 @@ function connectInstagram() {
   );
 
   if (!popup) {
-    setInstagramStatus('Not connected.');
+    if (igBtn && !isInstagramConnected) igBtn.textContent = igLabel || 'Connect Instagram';
     setError('Pop-up blocked. Allow pop-ups and try again.');
     return;
   }
@@ -702,8 +551,8 @@ function connectInstagram() {
   var watcher = setInterval(function () {
     if (popup.closed) {
       clearInterval(watcher);
-      if (!isInstagramConnected) {
-        setInstagramStatus('Not connected.');
+      if (!isInstagramConnected && igBtn) {
+        igBtn.textContent = igLabel || 'Connect Instagram';
       }
     }
   }, 500);
@@ -711,7 +560,7 @@ function connectInstagram() {
 
 function connectWhatsapp() {
   clearGlobalMessages();
-  setWhatsappStatus('Connecting…');
+
   ensureFacebookSdk()
     .then(function (FB) {
       return new Promise(function (resolve, reject) {
@@ -739,24 +588,21 @@ function connectWhatsapp() {
       isWhatsappConnected = true;
       whatsappAccount.phoneNumberId =
         (result && result.whatsapp && result.whatsapp.phone_number_id) || '—';
-      whatsappAccount.wabaId = (result && result.whatsapp && result.whatsapp.waba_id) || '—';
+      whatsappAccount.wabaId =
+        (result && result.whatsapp && result.whatsapp.waba_id) || '—';
       activeChannel = 'whatsapp';
-      setWhatsappStatus('Connected. Webhooks ready.');
+
       var btn = document.getElementById('connect-whatsapp-btn');
       if (btn) btn.textContent = 'Reconnect WhatsApp';
-      
-      // Switch to integration tab to show account details
-      switchTab('integration');
-      updateConnectionStatusDisplays();
-      
-      // Update channel selection
-      switchChannel('whatsapp');
-      
+
+      clearGlobalMessages();
+      showView('connected');
+      updateConnectedPanels();
+      updateInboxChannelSwitch();
       startMessagePolling();
       refreshMessages();
     })
     .catch(function (err) {
-      setWhatsappStatus('Not connected.');
       setError(err.message || String(err));
     });
 }
@@ -767,7 +613,10 @@ function startMessagePolling() {
 }
 
 function refreshMessages() {
-  if (!isInstagramConnected && !isWhatsappConnected) return Promise.resolve();
+  if (!isInstagramConnected && !isWhatsappConnected) {
+    renderInboxUi();
+    return Promise.resolve();
+  }
   if (!isChannelConnected(activeChannel)) {
     inboxRows = [];
     renderInboxUi();
@@ -780,7 +629,13 @@ function refreshMessages() {
 
   setInboxError('');
 
-  return fetch(API + '/messages?tenant_id=' + encodeURIComponent(TENANT_ID) + '&channel=' + encodeURIComponent(activeChannel))
+  return fetch(
+    API +
+      '/messages?tenant_id=' +
+      encodeURIComponent(TENANT_ID) +
+      '&channel=' +
+      encodeURIComponent(activeChannel)
+  )
     .then(function (res) {
       return res.json().then(function (data) {
         if (!res.ok) {
@@ -808,7 +663,7 @@ function refreshMessages() {
     })
     .catch(function (err) {
       var msg = err.message || String(err);
-      if (activeTab === 'inbox') {
+      if (currentView === 'inbox') {
         setInboxError(msg);
       } else {
         setError('Inbox: ' + msg);
@@ -832,6 +687,7 @@ function sendReply() {
   var body = isWhatsapp
     ? { tenant_id: TENANT_ID, to: selectedThreadId, message: text }
     : { recipient_id: selectedThreadId, message: text };
+
   fetch(API + endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -868,16 +724,6 @@ document.getElementById('thread-list').addEventListener('click', function (e) {
   renderInboxUi();
 });
 
-document.getElementById('chat-stream').addEventListener('click', function (e) {
-  var btn = e.target.closest('#inbox-connect-channel');
-  if (!btn) return;
-  if (activeChannel === 'whatsapp') {
-    connectWhatsapp();
-  } else {
-    connectInstagram();
-  }
-});
-
 document.getElementById('reply-send').addEventListener('click', sendReply);
 
 document.getElementById('reply-input').addEventListener('keydown', function (e) {
@@ -887,5 +733,4 @@ document.getElementById('reply-input').addEventListener('keydown', function (e) 
   }
 });
 
-// Initialize the application
 initializeApp();
