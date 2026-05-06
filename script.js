@@ -371,9 +371,29 @@ function completeWhatsappSignup(code) {
       session_info: latestWhatsappSignupSession || {}
     })
   }).then(function (res) {
-    return res.json().then(function (data) {
+    return res.text().then(function (raw) {
+      var data = null;
+      if (raw) {
+        try {
+          data = JSON.parse(raw);
+        } catch (_) {
+          data = null;
+        }
+      }
       if (!res.ok) {
-        throw new Error((data && data.error) || 'WhatsApp onboarding failed');
+        if (res.status === 404) {
+          throw new Error(
+            'Backend route /whatsapp/embedded-signup/complete not found. Deploy latest backend before retrying.'
+          );
+        }
+        throw new Error(
+          (data && data.error) ||
+            (raw && raw.slice(0, 140)) ||
+            'WhatsApp onboarding failed'
+        );
+      }
+      if (!data || typeof data !== 'object') {
+        throw new Error('Unexpected backend response while completing WhatsApp signup.');
       }
       return data;
     });
