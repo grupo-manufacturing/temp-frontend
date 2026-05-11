@@ -767,6 +767,99 @@ body {
   text-align: right;
 }
 
+/* Inbound: bubble + translation controls (existing tokens only) */
+.message-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  max-width: 100%;
+}
+
+.message-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.message-actions {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+  padding-top: 0.1rem;
+}
+
+.message-translate-select {
+  font-family: inherit;
+  font-size: 0.6875rem;
+  color: var(--text);
+  padding: 0.2rem 0.35rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  max-width: 7.75rem;
+  cursor: pointer;
+}
+
+.message-translate-btn {
+  font-family: inherit;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  padding: 0.2rem 0.45rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.message-translate-btn:hover:not(:disabled) {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.message-translate-btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.message-translate-err {
+  font-size: 0.6875rem;
+  color: var(--err);
+  margin-top: 0.35rem;
+  padding: 0 0.25rem;
+  line-height: 1.35;
+}
+
+.message-translate-result {
+  margin-top: 0.4rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: rgba(79, 70, 229, 0.06);
+  border-left: 3px solid #a5b4fc;
+}
+
+.view--inbox[data-active-channel='whatsapp'] .message-translate-result {
+  background: rgba(22, 163, 74, 0.07);
+  border-left-color: #86efac;
+}
+
+.message-translate-result-label {
+  font-size: 0.6875rem;
+  color: var(--muted);
+  margin-bottom: 0.25rem;
+}
+
+.message-translate-result-text {
+  font-size: 0.8125rem;
+  color: var(--text);
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .inbox-compose {
   padding: 0.75rem 1rem;
   border-top: 1px solid var(--border);

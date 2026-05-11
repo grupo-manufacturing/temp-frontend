@@ -26,6 +26,43 @@ let oauthLanding = 'connected';
 /** No-op until `bindInboxPermissionsPopover()` runs — used to detach listeners when leaving Inbox */
 let closeInboxPermissionsPopover = function () {};
 
+/** Target labels for POST /translate (matches backend `target_language`). */
+function translateLanguageSelectMarkup() {
+  var pairs = [
+    ['', 'Language…'],
+    ['English', 'English'],
+    ['Hindi', 'Hindi'],
+    ['Spanish', 'Spanish'],
+    ['French', 'French'],
+    ['German', 'German'],
+    ['Portuguese (Brazil)', 'Portuguese (Brazil)'],
+    ['Arabic', 'Arabic'],
+    ['Japanese', 'Japanese'],
+    ['Korean', 'Korean'],
+    ['Chinese (Simplified, China)', 'Chinese (Simplified, China)'],
+    ['Italian', 'Italian'],
+    ['Tamil', 'Tamil'],
+    ['Telugu', 'Telugu'],
+    ['Urdu', 'Urdu']
+  ];
+  var opts = pairs
+    .map(function (p) {
+      return (
+        '<option value="' +
+        escapeHtmlAttr(p[0]) +
+        '">' +
+        safeText(p[1]) +
+        '</option>'
+      );
+    })
+    .join('');
+  return (
+    '<select class="message-translate-select" aria-label="Translate to language">' +
+    opts +
+    '</select>'
+  );
+}
+
 function participantUsername(tid) {
   var p = threadProfiles[tid];
   if (p && typeof p.username === 'string' && p.username.trim()) {
@@ -424,23 +461,53 @@ function renderInboxUi() {
     chatEl.innerHTML =
       '<div class="empty-state">No messages in this conversation yet.</div>';
   } else {
+    chatEl._translateTexts = stream.map(function (m) {
+      return m.text;
+    });
     chatEl.innerHTML = stream
-      .map(function (msg) {
+      .map(function (msg, idx) {
         var isOut = msg.direction === 'out';
         var channelClass = activeChannel === 'whatsapp' ? ' channel-whatsapp' : '';
         var messageClass =
           'chat-message chat-message--' + (isOut ? 'out' : 'in') + channelClass;
         var timeFormatted = formatMessageTime(msg.at);
 
+        if (isOut) {
+          return (
+            '<div class="' +
+            messageClass +
+            '">' +
+            '<div class="message-bubble">' +
+            safeText(msg.text) +
+            '</div>' +
+            '<div class="message-time">' +
+            safeText(timeFormatted) +
+            '</div>' +
+            '</div>'
+          );
+        }
+
         return (
           '<div class="' +
           messageClass +
           '">' +
+          '<div class="message-row">' +
+          '<div class="message-col">' +
           '<div class="message-bubble">' +
           safeText(msg.text) +
           '</div>' +
           '<div class="message-time">' +
           safeText(timeFormatted) +
+          '</div>' +
+          '<p class="message-translate-err" hidden></p>' +
+          '<div class="message-translate-result" hidden role="status"></div>' +
+          '</div>' +
+          '<div class="message-actions">' +
+          translateLanguageSelectMarkup() +
+          '<button type="button" class="message-translate-btn" data-msg-index="' +
+          idx +
+          '">Translate</button>' +
+          '</div>' +
           '</div>' +
           '</div>'
         );
@@ -481,7 +548,106 @@ function clearGlobalMessages() {
   setError('');
 }
 
+function bindChatStreamTranslate() {
+  var chatEl = document.getElementById('chat-stream');
+  if (!chatEl || chatEl.dataset.translateDelegated === '1') return;
+  chatEl.dataset.translateDelegated = '1';
+
+  chatEl.addEventListener('click', function (e) {
+    var btn = e.target.closest('.message-translate-btn');
+    if (!btn || !chatEl.contains(btn)) return;
+
+    var row = btn.closest('.chat-message');
+    if (!row || !chatEl.contains(row)) return;
+
+    var errEl = row.querySelector('.message-translate-err');
+    var resultEl = row.querySelector('.message-translate-result');
+    var sel = row.querySelector('.message-translate-select');
+
+    if (errEl) {
+      errEl.textContent = '';
+      errEl.setAttribute('hidden', '');
+    }
+
+    var lang = sel && sel.value ? String(sel.value).trim() : '';
+    if (!lang) {
+      if (errEl) {
+        errEl.textContent = 'Choose a language first.';
+        errEl.removeAttribute('hidden');
+      }
+      return;
+    }
+
+    var idx = parseInt(btn.getAttribute('data-msg-index'), 10);
+    var texts = chatEl._translateTexts;
+    var text =
+      texts && !Number.isNaN(idx) && typeof texts[idx] === 'string' ? texts[idx] : '';
+
+    if (!text || !text.trim()) {
+      if (errEl) {
+        errEl.textContent = 'Nothing to translate.';
+        errEl.removeAttribute('hidden');
+      }
+      return;
+    }
+
+    btn.disabled = true;
+    var prevLabel = btn.textContent;
+    btn.textContent = '…';
+
+    fetch(API + '/translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: text,
+        target_language: lang,
+        source_language: 'auto',
+        style: 'neutral'
+      })
+    })
+      .then(function (r) {
+        return r.json().then(function (data) {
+          if (!r.ok) {
+            var msg =
+              (data && data.error) ||
+              (typeof data.details === 'string' ? data.details : null) ||
+              'Translation failed.';
+            throw new Error(msg);
+          }
+          return data;
+        });
+      })
+      .then(function (data) {
+        if (!resultEl) return;
+        var out =
+          typeof data.translated_text === 'string'
+            ? data.translated_text
+            : '';
+        resultEl.innerHTML =
+          '<div class="message-translate-result-label">Translation · ' +
+          safeText(lang) +
+          '</div>' +
+          '<div class="message-translate-result-text">' +
+          safeText(out || '—') +
+          '</div>';
+        resultEl.removeAttribute('hidden');
+      })
+      .catch(function (err) {
+        if (errEl) {
+          errEl.textContent = err.message || 'Translation failed.';
+          errEl.removeAttribute('hidden');
+        }
+      })
+      .finally(function () {
+        btn.disabled = false;
+        btn.textContent = prevLabel;
+      });
+  });
+}
+
 function initializeApp() {
+  bindChatStreamTranslate();
+
   var wrap = document.getElementById('inbox-channel-switch');
   if (wrap) {
     wrap.addEventListener('click', function (e) {

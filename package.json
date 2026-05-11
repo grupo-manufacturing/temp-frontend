@@ -6,6 +6,7 @@
     "start": "http-server . -p 5000 -c-1"
   },
   "devDependencies": {
+    "@carbon/styles": "^1.106.0",
     "http-server": "^14.1.1"
   }
 }
