@@ -26,8 +26,22 @@ let oauthLanding = 'connected';
 /** No-op until `bindInboxPermissionsPopover()` runs — used to detach listeners when leaving Inbox */
 let closeInboxPermissionsPopover = function () {};
 
+/** Persist selected target language per message across polling re-renders. */
+let translateSelectionByMessageKey = {};
+
 /** Target labels for POST /translate (matches backend `target_language`). */
-function translateLanguageSelectMarkup() {
+function messageTranslateKey(msg) {
+  if (!msg || typeof msg !== 'object') return '';
+  return [
+    msg.channel || '',
+    msg.threadUserId || '',
+    msg.direction || '',
+    String(msg.at || 0),
+    String(msg.text || '')
+  ].join('|');
+}
+
+function translateLanguageSelectMarkup(selectedLanguage) {
   var pairs = [
     ['', 'Language…'],
     ['English', 'English'],
@@ -47,10 +61,13 @@ function translateLanguageSelectMarkup() {
   ];
   var opts = pairs
     .map(function (p) {
+      var isSelected = selectedLanguage && selectedLanguage === p[0];
       return (
         '<option value="' +
         escapeHtmlAttr(p[0]) +
-        '">' +
+        '"' +
+        (isSelected ? ' selected' : '') +
+        '>' +
         safeText(p[1]) +
         '</option>'
       );
@@ -464,6 +481,9 @@ function renderInboxUi() {
     chatEl._translateTexts = stream.map(function (m) {
       return m.text;
     });
+    chatEl._translateKeys = stream.map(function (m) {
+      return messageTranslateKey(m);
+    });
     chatEl.innerHTML = stream
       .map(function (msg, idx) {
         var isOut = msg.direction === 'out';
@@ -503,10 +523,12 @@ function renderInboxUi() {
           '<div class="message-translate-result" hidden role="status"></div>' +
           '</div>' +
           '<div class="message-actions">' +
-          translateLanguageSelectMarkup() +
+          '<div class="message-actions-shell">' +
+          translateLanguageSelectMarkup(translateSelectionByMessageKey[messageTranslateKey(msg)] || '') +
           '<button type="button" class="message-translate-btn" data-msg-index="' +
           idx +
           '">Translate</button>' +
+          '</div>' +
           '</div>' +
           '</div>' +
           '</div>'
@@ -642,6 +664,21 @@ function bindChatStreamTranslate() {
         btn.disabled = false;
         btn.textContent = prevLabel;
       });
+  });
+
+  chatEl.addEventListener('change', function (e) {
+    var sel = e.target.closest('.message-translate-select');
+    if (!sel || !chatEl.contains(sel)) return;
+    var row = sel.closest('.chat-message');
+    if (!row || !chatEl.contains(row)) return;
+    var btn = row.querySelector('.message-translate-btn');
+    if (!btn) return;
+    var idx = parseInt(btn.getAttribute('data-msg-index'), 10);
+    var keys = chatEl._translateKeys;
+    var key =
+      keys && !Number.isNaN(idx) && typeof keys[idx] === 'string' ? keys[idx] : '';
+    if (!key) return;
+    translateSelectionByMessageKey[key] = String(sel.value || '').trim();
   });
 }
 
