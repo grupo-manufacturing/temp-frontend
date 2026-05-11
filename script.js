@@ -28,6 +28,8 @@ let closeInboxPermissionsPopover = function () {};
 
 /** Persist selected target language per message across polling re-renders. */
 let translateSelectionByMessageKey = {};
+/** Persist translation output + view mode per message key. */
+let translateStateByMessageKey = {};
 
 /** Target labels for POST /translate (matches backend `target_language`). */
 function messageTranslateKey(msg) {
@@ -508,23 +510,41 @@ function renderInboxUi() {
         }
 
         return (
+          (function () {
+            var key = messageTranslateKey(msg);
+            var tr = translateStateByMessageKey[key] || null;
+            var hasTranslation = Boolean(tr && tr.translatedText);
+            var showOriginal = Boolean(hasTranslation && tr.showOriginal);
+            var displayText = hasTranslation && !showOriginal ? tr.translatedText : msg.text;
+            var selectedLanguage =
+              (tr && tr.language) || translateSelectionByMessageKey[key] || '';
+            var toggleMarkup = hasTranslation
+              ? '<button type="button" class="message-translate-toggle" data-msg-key="' +
+                escapeHtmlAttr(key) +
+                '">' +
+                (showOriginal ? 'Show translation' : 'Show original') +
+                '</button>'
+              : '';
+            return (
           '<div class="' +
           messageClass +
           '">' +
           '<div class="message-row">' +
           '<div class="message-col">' +
           '<div class="message-bubble">' +
-          safeText(msg.text) +
+          safeText(displayText) +
           '</div>' +
+          '<div class="message-meta-row">' +
           '<div class="message-time">' +
           safeText(timeFormatted) +
           '</div>' +
+          toggleMarkup +
+          '</div>' +
           '<p class="message-translate-err" hidden></p>' +
-          '<div class="message-translate-result" hidden role="status"></div>' +
           '</div>' +
           '<div class="message-actions">' +
           '<div class="message-actions-shell">' +
-          translateLanguageSelectMarkup(translateSelectionByMessageKey[messageTranslateKey(msg)] || '') +
+          translateLanguageSelectMarkup(selectedLanguage) +
           '<button type="button" class="message-translate-btn" data-msg-index="' +
           idx +
           '">Translate</button>' +
@@ -532,6 +552,8 @@ function renderInboxUi() {
           '</div>' +
           '</div>' +
           '</div>'
+        );
+          })()
         );
       })
       .join('');
@@ -576,6 +598,21 @@ function bindChatStreamTranslate() {
   chatEl.dataset.translateDelegated = '1';
 
   chatEl.addEventListener('click', function (e) {
+    var toggleBtn = e.target.closest('.message-translate-toggle');
+    if (toggleBtn && chatEl.contains(toggleBtn)) {
+      var toggleKey = String(toggleBtn.getAttribute('data-msg-key') || '').trim();
+      if (!toggleKey) return;
+      var prev = translateStateByMessageKey[toggleKey];
+      if (!prev || !prev.translatedText) return;
+      translateStateByMessageKey[toggleKey] = {
+        language: prev.language || '',
+        translatedText: prev.translatedText,
+        showOriginal: !prev.showOriginal
+      };
+      renderInboxUi();
+      return;
+    }
+
     var btn = e.target.closest('.message-translate-btn');
     if (!btn || !chatEl.contains(btn)) return;
 
@@ -583,7 +620,6 @@ function bindChatStreamTranslate() {
     if (!row || !chatEl.contains(row)) return;
 
     var errEl = row.querySelector('.message-translate-err');
-    var resultEl = row.querySelector('.message-translate-result');
     var sel = row.querySelector('.message-translate-select');
 
     if (errEl) {
@@ -602,8 +638,11 @@ function bindChatStreamTranslate() {
 
     var idx = parseInt(btn.getAttribute('data-msg-index'), 10);
     var texts = chatEl._translateTexts;
+    var keys = chatEl._translateKeys;
     var text =
       texts && !Number.isNaN(idx) && typeof texts[idx] === 'string' ? texts[idx] : '';
+    var msgKey =
+      keys && !Number.isNaN(idx) && typeof keys[idx] === 'string' ? keys[idx] : '';
 
     if (!text || !text.trim()) {
       if (errEl) {
@@ -640,19 +679,22 @@ function bindChatStreamTranslate() {
         });
       })
       .then(function (data) {
-        if (!resultEl) return;
         var out =
           typeof data.translated_text === 'string'
             ? data.translated_text
             : '';
-        resultEl.innerHTML =
-          '<div class="message-translate-result-label">Translation · ' +
-          safeText(lang) +
-          '</div>' +
-          '<div class="message-translate-result-text">' +
-          safeText(out || '—') +
-          '</div>';
-        resultEl.removeAttribute('hidden');
+        if (!out || !out.trim()) {
+          throw new Error('Translation returned empty text.');
+        }
+        if (msgKey) {
+          translateSelectionByMessageKey[msgKey] = lang;
+          translateStateByMessageKey[msgKey] = {
+            language: lang,
+            translatedText: out,
+            showOriginal: false
+          };
+        }
+        renderInboxUi();
       })
       .catch(function (err) {
         if (errEl) {
@@ -678,7 +720,11 @@ function bindChatStreamTranslate() {
     var key =
       keys && !Number.isNaN(idx) && typeof keys[idx] === 'string' ? keys[idx] : '';
     if (!key) return;
-    translateSelectionByMessageKey[key] = String(sel.value || '').trim();
+    var nextLang = String(sel.value || '').trim();
+    translateSelectionByMessageKey[key] = nextLang;
+    if (translateStateByMessageKey[key]) {
+      translateStateByMessageKey[key].language = nextLang;
+    }
   });
 }
 
